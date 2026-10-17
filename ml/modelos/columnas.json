@@ -1,0 +1,20 @@
+[
+  "nivel",
+  "nivel_porcentaje",
+  "voltaje",
+  "voltaje_terminal",
+  "amperaje",
+  "caudal",
+  "potencia",
+  "carga",
+  "altura",
+  "factor_potencia",
+  "caudal_total",
+  "potencia_total",
+  "corriente_total",
+  "nivel_destino",
+  "demanda",
+  "posicion_valvula",
+  "velocidad_rotacion",
+  "horas_operacion"
+]

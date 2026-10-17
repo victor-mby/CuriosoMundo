@@ -1,0 +1,627 @@
+===============================================================================
+EDGEMANT - ESTADO Y ESTRUCTURA DETALLADA DEL PROYECTO
+===============================================================================
+Generado: 2026-10-07 (REVISION FINAL)
+Proyecto: C:\Users\bazan\OneDrive\Desktop\proyecto edgmant
+Python: 3.14.7
+Prueba Etapa 1: OK
+Prueba Etapa 2: OK
+Prueba Etapa 3: OK
+Simulador: INTACTO - NO MODIFICADO - SIN CAMBIOS
+
+===============================================================================
+1. ESTRUCTURA COMPLETA DE DIRECTORIOS Y ARCHIVOS
+===============================================================================
+
+edgemant/
+├── base_datos/
+│   ├── base_datos.sql
+│   ├── crear_base_datos.py
+│   ├── crear_tabla_detecciones.py
+│   ├── edgemant.db
+│   ├── generar_datos_prueba.py
+│   ├── importar_csv.py
+│   ├── resultado_etapa2.png
+│   ├── view_ml.sql
+│   └── __pycache__/
+│       ├── crear_base_datos.cpython-314.pyc
+│       └── generar_datos_prueba.cpython-314.pyc
+├── dashboard/
+│   ├── app.py
+│   ├── servicios/
+│   │   ├── dashboard.py
+│   │   ├── servicio_historial.py
+│   │   └── __init__.py
+│   ├── static/
+│   │   ├── css/
+│   │   │   └── estilos.css
+│   │   └── js/
+│   │       └── app.js
+│   └── templates/
+│       └── index.html
+├── datos/ (vacío - directorio reservado)
+├── ml/
+│   ├── autoencoder.py
+│   ├── detectar_anomalias.py
+│   ├── entrenar_modelo.py
+│   ├── guardar_modelo.py
+│   ├── inferir.py
+│   ├── interpretar.py
+│   ├── leer_view.py
+│   ├── preparar_datos.py
+│   ├── __pycache__/
+│   │   ├── autoencoder.cpython-314.pyc
+│   │   ├── detectar_anomalias.cpython-314.pyc
+│   │   ├── entrenar_modelo.cpython-314.pyc
+│   │   ├── guardar_modelo.cpython-314.pyc
+│   │   ├── leer_view.cpython-314.pyc
+│   │   └── preparar_datos.cpython-314.pyc
+│   └── modelos/
+│       ├── autoencoder.pth
+│       ├── columnas.json
+│       ├── scaler.json
+│       └── umbral.txt
+├── pruebas/
+│   ├── probar_etapa1.py
+│   ├── probar_etapa2.py
+│   └── probar_etapa3.py
+├── simulador/ (SIN MODIFICAR - VER SECCION 2)
+├── EDGEMANT_ESTRUCTURA.txt
+└── ESTADO_ACTUAL.txt
+
+===============================================================================
+2. ESTADO DEL SIMULADOR
+===============================================================================
+
+Regla: INACTIVO, SIN MODIFICAR, SIN CAMBIOS, SIN REORGANIZACIÓN.
+
+El simulador es un componente terminado y de solo lectura.
+No se modificó ningún archivo, función, variable, fórmula, lógica,
+estructura, HTML, JS, CSS, mecanismo de generación de datos ni exportador.
+
+Archivos del simulador intactos:
+    - simulador/index.html
+    - simulador/iniciar.bat
+    - simulador/prueba.html
+    - simulador/prueba2.html
+    - simulador/servidor.py
+    - simulador/src/nucleo/almacen.js
+    - simulador/src/nucleo/azar.js
+    - simulador/src/nucleo/formato.js
+    - simulador/src/simulacion/almagas.js
+    - simulador/src/simulacion/configuracion.js
+    - simulador/src/simulacion/electrico.js
+    - simulador/src/simulacion/estacion.js
+    - simulador/src/simulacion/eventos.js
+    - simulador/src/simulacion/hidraulica.js
+    - simulador/src/simulacion/historial.js
+    - simulador/src/simulacion/maquinaEstados.js
+    - simulador/src/simulacion/simulador.js
+    - simulador/src/ui/app.js
+    - simulador/src/ui/diagrama.js
+    - simulador/src/ui/dom.js
+    - simulador/src/ui/estilos.css
+    - simulador/src/ui/paneles/configuracion.js
+    - simulador/src/ui/paneles/equipos.js
+    - simulador/src/ui/paneles/graficas.js
+    - simulador/src/ui/paneles/historial.js
+    - simulador/src/ui/paneles/registros.js
+    - simulador/src/ui/paneles/telemetria.js
+
+Datos del simulador que genera:
+    - 29 campos por registro en la funcion capturar()
+    - Exportacion CSV limitada a 16 columnas
+    - 12 columnas del simulador no llegan al CSV exportado
+
+Variables generadas en capturar() (simulador.js lineas 68-100):
+    1.  tiempo
+    2.  tiempo_simulacion
+    3.  timestamp
+    4.  fecha
+    5.  hora
+    6.  motor_id
+    7.  nivel
+    8.  nivel_porcentaje
+    9.  voltaje
+    10. voltaje_terminal
+    11. amperaje
+    12. corriente_nominal
+    13. caudal
+    14. potencia
+    15. potencia_nominal
+    16. carga
+    17. altura
+    18. factor_potencia
+    19. estado_motor
+    20. estado_valvula
+    21. posicion_valvula
+    22. velocidad_rotacion
+    23. horas_operacion
+    24. caudal_total
+    25. potencia_total
+    26. corriente_total
+    27. nivel_destino
+    28. demanda
+    29. nivel_tanque_maximo
+
+Variables en CSV exportado (historial.js COLUMNAS, 16 columnas):
+    1.  fecha
+    2.  hora
+    3.  tiempo_simulacion
+    4.  motor_id
+    5.  nivel
+    6.  nivel_porcentaje
+    7.  voltaje
+    8.  amperaje
+    9.  caudal
+    10. potencia
+    11. estado_motor
+    12. estado_valvula
+    13. caudal_total
+    14. potencia_total
+    15. nivel_destino
+    16. demanda
+
+Variables del simulador AUSENTES en el CSV exportado (12):
+    1.  timestamp
+    2.  voltaje_terminal
+    3.  corriente_nominal
+    4.  potencia_nominal
+    5.  carga
+    6.  altura
+    7.  factor_potencia
+    8.  posicion_valvula
+    9.  velocidad_rotacion
+    10. horas_operacion
+    11. corriente_total
+    12. nivel_tanque_maximo
+
+Accion requerida para obtener las 12 columnas faltantes:
+    Autorizacion explicita para modificar el exportador del simulador
+    o implementar mecanismo alternativo de captura.
+
+===============================================================================
+3. ETAPA 1 - DATOS (COMPLETADA Y VERIFICADA)
+===============================================================================
+
+Estado: COMPLETADA Y VERIFICADA
+
+Flujo:
+    [Simulador]
+        ↓
+    [CSV exportado]
+        ↓
+    [importar_csv.py]
+        ↓
+    [SQLite - edgemant.db]
+        ↓
+    [vista_telemetria_ml]
+        ↓
+    [leer_view.py]
+        ↓
+    [Pandas DataFrame]
+
+Componentes:
+    - base_datos/base_datos.sql ......... Schema SQLite (5 tablas + indices)
+    - base_datos/view_ml.sql ............ Vista SQL para ML
+    - base_datos/crear_base_datos.py .... Crea edgemant.db desde SQL
+    - base_datos/importar_csv.py ........ Importa CSV del simulador
+    - base_datos/generar_datos_prueba.py Genera datos sinteticos
+    - base_datos/edgemant.db ............ Base de datos SQLite
+    - ml/leer_view.py .................. Lee VIEW y retorna DataFrame
+    - pruebas/probar_etapa1.py ......... Prueba integral
+
+Prueba:
+    Script: pruebas/probar_etapa1.py
+    Comando: python pruebas/probar_etapa1.py
+    Resultado: OK
+    - 7200 registros generados
+    - 7200 registros cargados desde VIEW
+    - 26 columnas disponibles
+
+Base de datos:
+    - 5 tablas originales:
+        * estaciones
+        * motores
+        * registros_telemetria
+        * eventos
+        * alarmas
+    - 1 tabla Etapa 3:
+        * detecciones_anomalias
+    - Indices:
+        * idx_telemetria_motor_tiempo
+        * idx_telemetria_tiempo
+        * idx_eventos_tiempo
+        * idx_eventos_tipo
+        * idx_detecciones_motor_tiempo
+        * idx_detecciones_tiempo
+
+===============================================================================
+4. ETAPA 2 - ANALISIS (COMPLETADA Y VERIFICADA)
+===============================================================================
+
+Estado: COMPLETADA Y VERIFICADA
+
+Flujo:
+    [vista_telemetria_ml]
+        ↓
+    [leer_view.py]
+        ↓
+    [Pandas DataFrame]
+        ↓
+    [preparar_datos.py]
+        ↓
+    [X normalizado]
+        ↓
+    [autoencoder.py - entrenar]
+        ↓
+    [autoencoder.py - calcular_error]
+        ↓
+    [detectar_anomalias.py - calcular_umbral]
+        ↓
+    [detectar_anomalias.py - detectar]
+        ↓
+    [DataFrame con error_reconstruccion, umbral, anomalia]
+        ↓
+    [guardar_modelo.py]
+        ↓
+    [ml/modelos/]
+
+Componentes:
+    - ml/preparar_datos.py .............. Preprocesamiento
+    - ml/autoencoder.py ................. Modelo PyTorch
+    - ml/entrenar_modelo.py ............. Orquestacion
+    - ml/detectar_anomalias.py .......... Umbral y deteccion
+    - ml/guardar_modelo.py .............. Guardado de pesos/metadatos
+    - ml/modelos/autoencoder.pth ........ Pesos entrenados
+    - ml/modelos/columnas.json .......... Variables utilizadas
+    - ml/modelos/umbral.txt ............. Valor del umbral
+    - ml/modelos/scaler.json ............ Parametros StandardScaler
+    - pruebas/probar_etapa2.py .......... Prueba integral
+    - base_datos/resultado_etapa2.png ... Histograma del error
+
+Prueba:
+    Script: pruebas/probar_etapa2.py
+    Comando: python pruebas/probar_etapa2.py
+    Resultado: OK
+
+Resultados numericos (ultima ejecucion):
+    - Registros cargados: 7200
+    - Variables utilizadas: 18
+    - Datos preparados: 7200 registros, 18 variables
+    - Autoencoder entrenado: 50 epochs
+    - Loss final: 0.200095
+    - Umbral: 0.372668
+    - Registros normales: 6840
+    - Posibles anomalias: 360
+    - Grafico generado: base_datos/resultado_etapa2.png
+
+Variables ML utilizadas:
+    1.  nivel
+    2.  nivel_porcentaje
+    3.  voltaje
+    4.  voltaje_terminal
+    5.  amperaje
+    6.  caudal
+    7.  potencia
+    8.  carga
+    9.  altura
+    10. factor_potencia
+    11. caudal_total
+    12. potencia_total
+    13. corriente_total
+    14. nivel_destino
+    15. demanda
+    16. posicion_valvula
+    17. velocidad_rotacion
+    18. horas_operacion
+
+Arquitectura Autoencoder:
+    - input_dim: 18
+    - bottleneck_dim: 6
+    - Encoder:
+        * Linear(18, 9) -> ReLU
+        * Linear(9, 6) -> ReLU
+    - Decoder:
+        * Linear(6, 9) -> ReLU
+        * Linear(9, 18)
+    - Optimizador: Adam (lr=1e-3)
+    - Loss: MSE
+    - batch_size: 64
+    - epochs: 50
+
+Metodo de normalizacion: StandardScaler
+
+Metodo de umbral: Percentil 95 del error de reconstruccion MSE
+
+Metodo de deteccion:
+    - error <= umbral -> comportamiento normal (0)
+    - error > umbral  -> posible anomalia (1)
+
+Sin etiquetas artificiales. El modelo aprende por reconstruccion.
+
+===============================================================================
+5. ETAPA 3 - DIAGNOSTICO Y DASHBOARD (COMPLETADA Y VERIFICADA)
+===============================================================================
+
+Estado: COMPLETADA Y VERIFICADA
+
+Flujo:
+    [vista_telemetria_ml]
+        ↓
+    [inferir.py]
+        ↓
+    [DataFrame con error, umbral, anomalia]
+        ↓
+    [interpretar.py]
+        ↓
+    [Severidad + Interpretacion]
+        ↓
+    [dashboard/servicios/servicio_historial.py]
+        ↓
+    [detecciones_anomalias tabla SQL]
+        ↓
+    [dashboard/app.py]
+        ↓
+    [Dashboard Flask]
+
+Componentes nuevos:
+    - ml/inferir.py ...................... Inferencia con modelo entrenado
+    - ml/interpretar.py .................. Reglas de interpretacion
+    - base_datos/crear_tabla_detecciones.py . Crea tabla detecciones_anomalias
+    - dashboard/
+        ├── app.py ....................... Aplicacion Flask
+        ├── servicios/
+        │   ├── dashboard.py .............. Datos para el dashboard
+        │   └── servicio_historial.py ..... CRUD detecciones_anomalias
+        ├── templates/
+        │   └── index.html ............. Pagina principal
+        ├── static/
+        │   ├── css/
+        │   │   └── estilos.css ....... Estilos
+        │   └── js/
+        │       └── app.js ............. Logica frontend
+
+Prueba:
+    Script: pruebas/probar_etapa3.py
+    Comando: python pruebas/probar_etapa3.py
+    Resultado: OK
+
+Resultados numericos:
+    - Registros analizados: 7200
+    - Posibles anomalias: 360
+    - Detecciones guardadas: 360
+    - Umbral: 0.372668
+
+Reglas de interpretacion:
+    1. Posible comportamiento electrico anormal
+       - Variables: voltaje, voltaje_terminal, amperaje, corriente_total,
+                    factor_potencia, potencia
+       - Descripcion: Revisar alimentacion electrica, corriente, tension
+                      y factor de potencia.
+
+    2. Posible comportamiento hidraulico anormal
+       - Variables: caudal, altura, nivel, nivel_destino, demanda
+       - Descripcion: Revisar caudal, niveles, demanda y condiciones
+                      de impulsion.
+
+    3. Posible sobrecarga del sistema
+       - Variables: carga, amperaje, potencia, corriente_total
+       - Descripcion: Revisar corriente, potencia y carga del motor.
+
+    4. Posible restriccion o condicion anormal del flujo
+       - Variables: caudal, posicion_valvula, altura, demanda
+       - Descripcion: Revisar valvula, caudal y condiciones hidraulicas.
+
+    5. Comportamiento operativo fuera del patron normal
+       - Variables: todas las desviadas
+       - Descripcion: Se detectaron desviaciones multiples. Requiere
+                      inspeccion.
+
+Metodo de severidad:
+    - error <= umbral -> NORMAL
+    - umbral < error <= 1.5 x umbral -> ATENCION
+    - error > 1.5 x umbral -> CRITICO
+
+Tabla de detecciones:
+    Nombre: detecciones_anomalias
+    Columnas:
+        - id (INTEGER PRIMARY KEY AUTOINCREMENT)
+        - registro_id (INTEGER)
+        - motor_id (TEXT NOT NULL)
+        - tiempo (REAL NOT NULL)
+        - fecha (TEXT)
+        - hora (TEXT)
+        - error_reconstruccion (REAL NOT NULL)
+        - umbral (REAL NOT NULL)
+        - severidad (TEXT NOT NULL)
+        - tipo_interpretacion (TEXT NOT NULL)
+        - descripcion (TEXT NOT NULL)
+        - variables_relevantes (TEXT NOT NULL)
+
+Dashboard:
+    - Inicio: python dashboard/app.py
+    - URL: http://localhost:5000
+    - Endpoints:
+        * GET / -> Pagina principal
+        * GET /api/dashboard -> Resumen y historial
+        * POST /api/inferir -> Ejecuta inferencia y guarda detecciones
+
+Verificacion manual del dashboard:
+    - Pagina principal: Status 200 OK
+    - API dashboard: Status 200 OK
+    - API inferir: Status 200 OK, guarda 360 detecciones
+
+===============================================================================
+6. DEPENDENCIAS PYTHON
+===============================================================================
+
+Version Python: 3.14.7
+
+Dependencias Etapa 1:
+    - sqlite3 (modulo estandar)
+    - pandas 3.0.5
+    - numpy (dependencia de pandas)
+
+Dependencias Etapa 2 (nuevas):
+    - scikit-learn 1.9.0 (StandardScaler)
+    - torch 2.14.0+cpu (PyTorch - Autoencoder)
+    - matplotlib 3.11.1 (graficos)
+
+Dependencias Etapa 3 (nuevas):
+    - flask 3.1.3 (dashboard web)
+
+Comando instalacion dependencias nuevas:
+    pip install scikit-learn torch matplotlib flask
+
+No se instalo TensorFlow porque PyTorch ya estaba disponible.
+
+===============================================================================
+7. HALLAZGOS Y CORRECCIONES DE INTEGRACION
+===============================================================================
+
+Problema 1: Columna 'id' faltante en inferencia
+    - Causa: inferir.py solo retornaba variables ML, sin columnas
+             de identificacion
+    - Impacto: Dashboard no podia mostrar motor_id, fecha, hora
+    - Correccion: inferir.py ahora preserva id, motor_id, tiempo,
+                  fecha, hora
+    - Archivo corregido: ml/inferir.py
+
+Problema 2: Importaciones del dashboard
+    - Causa: Importaciones relativas fallaban al ejecutar app.py
+             directamente
+    - Impacto: Dashboard no se iniciaba
+    - Correccion: Uso de importaciones absolutas en
+                  dashboard/servicios/dashboard.py y ajuste de
+                  sys.path en pruebas/probar_etapa3.py
+    - Archivos corregidos:
+        * dashboard/servicios/dashboard.py
+        * pruebas/probar_etapa3.py
+
+Problema 3: Inconsistencia de umbral entre etapas
+    - Causa: Cada ejecucion de Etapa 2 reentrena y sobrescribe
+             umbral.txt
+    - Impacto: Etapa 3 cargaba umbral de ejecucion anterior
+    - Estado: Ahora consistente. Ultimo umbral: 0.372668
+    - Nota: El valor varia segun la ejecucion por aleatoriedad
+            del entrenamiento
+
+===============================================================================
+8. PRUEBAS Y RESULTADOS
+===============================================================================
+
+Prueba Etapa 1:
+    Script: pruebas/probar_etapa1.py
+    Comando: python pruebas/probar_etapa1.py
+    Resultado: OK
+    - Base de datos creada
+    - 7200 registros generados
+    - 7200 registros cargados desde VIEW
+    - 26 columnas disponibles
+
+Prueba Etapa 2:
+    Script: pruebas/probar_etapa2.py
+    Comando: python pruebas/probar_etapa2.py
+    Resultado: OK
+    - 7200 registros cargados
+    - 18 variables utilizadas
+    - Autoencoder entrenado (50 epochs)
+    - Loss final: 0.200095
+    - Umbral: 0.372668
+    - Registros normales: 6840
+    - Posibles anomalias: 360
+    - Grafico: base_datos/resultado_etapa2.png
+
+Prueba Etapa 3:
+    Script: pruebas/probar_etapa3.py
+    Comando: python pruebas/probar_etapa3.py
+    Resultado: OK
+    - Base de datos: OK
+    - VIEW: OK
+    - Modelo: OK
+    - Scaler: OK
+    - Umbral: OK (0.372668)
+    - Inferencia: OK
+    - Deteccion: OK (360 posibles anomalias)
+    - Interpretacion: OK (360 ejemplos interpretados)
+    - Historial: OK (0 detecciones previas en tabla)
+    - Dashboard: OK
+
+Todas las pruebas ejecutadas exitosamente sin errores.
+
+===============================================================================
+9. ESTADO DEL PROYECTO
+===============================================================================
+
+Etapa 1 (DATOS): COMPLETADA - Funcional
+Etapa 2 (ANALISIS): COMPLETADA - Funcional
+Etapa 3 (DIAGNOSTICO/DASHBOARD): COMPLETADA - Funcional
+
+Simulador: INTACTO - No modificado en ningun aspecto.
+
+Flujo completo funcional:
+    SQLite -> VIEW -> Pandas -> Autoencoder -> Error -> Umbral -> Anomalia
+        -> Interpretacion -> Severidad -> Historial -> Dashboard
+
+Proyecto listo para:
+    - Demostracion academica (SENATI)
+    - Presentacion de funcionalidad
+    - Uso de dashboard web
+    - Analisis de anomalias
+
+No listo para:
+    - Produccion industrial
+    - Conexion con sensores reales
+    - Despliegue en servidor
+
+===============================================================================
+10. RUTAS ABSOLUTAS CLAVE
+===============================================================================
+
+Proyecto:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\
+
+Base de datos:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\edgemant.db
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\base_datos.sql
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\view_ml.sql
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\crear_tabla_detecciones.py
+
+ML:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\preparar_datos.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\autoencoder.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\entrenar_modelo.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\detectar_anomalias.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\guardar_modelo.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\inferir.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\interpretar.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\leer_view.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\modelos\autoencoder.pth
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\modelos\columnas.json
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\modelos\umbral.txt
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\modelos\scaler.json
+
+Dashboard:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\dashboard\app.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\dashboard\servicios\dashboard.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\dashboard\servicios\servicio_historial.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\dashboard\templates\index.html
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\dashboard\static\css\estilos.css
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\dashboard\static\js\app.js
+
+Pruebas:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\pruebas\probar_etapa1.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\pruebas\probar_etapa2.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\pruebas\probar_etapa3.py
+
+Resultados:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\resultado_etapa2.png
+
+Documentacion:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ESTADO_ACTUAL.txt
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\EDGEMANT_ESTRUCTURA.txt
+
+===============================================================================
+FIN DEL ARCHIVO
+===============================================================================

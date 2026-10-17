@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Prueba de motor de simulación</title>
+</head>
+<body>
+  <pre id="salida">ejecutando...</pre>
+  <script type="module">
+    const salida = document.getElementById('salida');
+    const lineas = [];
+    const log = (...args) => lineas.push(args.join(' '));
+    window.addEventListener('error', (e) => lineas.push('ERROR: ' + e.message));
+    try {
+      const { crearSimulador } = await import('./src/simulacion/simulador.js');
+      const sim = crearSimulador();
+      sim.establecerVelocidad(6);
+      sim.iniciar();
+      const paso = 16;
+      const f = (n, d) => n.toFixed(d).padStart(d + 3);
+      const Interesting = new Set([1, 20, 40, 60, 90, 150, 300, 600, 1200, 1800, 2400, 3000, 3600, 4200, 4800, 5400, 6000, 7200, 9000, 11000]);
+      const guion = (e, m) =>
+        `${m.estado.padEnd(12)} v=${f(m.velocidad * 100, 0)}% I=${f(m.corriente, 1)} Q=${f(m.caudal * 1000, 1)} H=${f(m.altura, 1)} kW=${f(m.potencia, 1)} c=${f(m.carga * 100, 0)}% vlv=${f(m.valvula.posicion * 100, 0)}%`;
+      for (let i = 1; i <= 11000; i += 1) {
+        sim.avanzarReloj(paso);
+        if (i === 60) { sim.abrirValvula('M-01'); sim.estartrar('M-01'); }
+        if (i === 400) { sim.abrirValvula('M-02'); sim.estartrar('M-02'); }
+        if (i === 4000) sim.fijarNivel(7.4);
+        if (i === 5000) sim.perturbacion('caida');
+        if (i === 6000) sim.fijarNivel(1.2);
+        if (i === 7000) sim.cerrarValvula('M-02');
+        if (i === 8000) sim.fijarNivel(0.35);
+        if (i === 9500) sim.fijarNivel(4.4);
+        if (i === 10000) sim.reiniciarFalla('M-01');
+        if (i === 10500) sim.conmutarComunicacion();
+        if (i === 10700) sim.conmutarComunicacion();
+        if (i === 10800) sim.estartrar('M-01');
+        if (Interesting.has(i)) {
+          const e = sim.estado();
+          const [m1, m2] = e.motores;
+          log(
+            `t=${e.tiempo.toFixed(0).padStart(5)}`,
+            `niv=${f(e.tanque.nivel, 2)}`,
+            `dest=${f(e.destino.nivel, 2)}`,
+            `dem=${f(e.destino.demanda, 1)}`,
+            `V=${f(e.red.tension, 1)}`,
+            `It=${f(e.red.corriente, 1)}`,
+            `Qt=${f(e.totales.caudal * 1000, 1)}`,
+            `Pt=${f(e.totales.potencia, 1)}`,
+            `\n     M01 ${guion(m1, m1)}`,
+            `\n     M02 ${guion(m2, m2)}`,
+            `\n     al=${sim.alarmas().listar().map((a) => `${a.id}(${a.severidad})`).join(' ') || '-'}`,
+          );
+        }
+      }
+      const r = sim.resumen();
+      log('---- RESUMEN ----');
+      log('historial:', r.totalMuestras, '/', r.capacidadHistorial, 'eventos:', r.totalEventos, 'alarmas activas:', r.conteoAlarmas.totales, 'criticas:', r.conteoAlarmas.criticas);
+      log('alarmas historico:', sim.alarmas().historico().length);
+      log('conteo:', JSON.stringify(sim.alarmas().contar()));
+      const hs = sim.historial.estadisticas('caudal', sim.historial.listar(300).filter((x) => x.motor_id === 'M-01'));
+      log('stats caudal M-01 (300):', JSON.stringify(hs));
+      log('ultimo:', JSON.stringify(sim.historial.ultimo()));
+      log('CSV:\n' + (await import('./src/simulacion/historial.js')).construirCSV(sim.historial.listar(2)));
+      log('eventos (25):');
+      for (const ev of sim.eventos.listar().slice(0, 25)) log('  ', ev.hora.toLocaleTimeString('es-ES'), ev.tipo.padEnd(14), ev.equipo.padEnd(8), ev.severidad.padEnd(8), ev.texto);
+    } catch (error) {
+      lineas.push('EXCEPCION: ' + (error && error.stack ? error.stack : error));
+    }
+    salida.textContent = lineas.join('\n');
+  </script>
+</body>
+</html>

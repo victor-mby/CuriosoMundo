@@ -1,0 +1,489 @@
+===============================================================================
+EDGEMANT - ESTRUCTURA, ESQUEMA SQL Y COMPONENTES CREADOS
+===============================================================================
+Fecha de creacion: 2026-10-07
+Nota: El simulador NO fue modificado. Este archivo documenta exclusivamente
+los componentes nuevos de EdgeMant.
+
+===============================================================================
+1. ESTRUCTURA DE DIRECTORIOS NUEVA
+===============================================================================
+
+edgemant/
+├── base_datos/
+│   ├── base_datos.sql          # Schema SQLite
+│   ├── view_ml.sql             # Vista SQL para Machine Learning
+│   ├── crear_base_datos.py     # Crea edgemant.db desde SQL
+│   ├── importar_csv.py         # Importa CSV exportado por el simulador
+│   ├── generar_datos_prueba.py # Datos sintéticos para pruebas
+│   └── edgemant.db             # Base de datos SQLite (generada)
+├── ml/
+│   ├── leer_view.py            # Lee la VIEW y carga datos en Pandas
+│   ├── preparar_datos.py       # Preprocesamiento para ML
+│   ├── autoencoder.py          # Modelo Autoencoder PyTorch
+│   ├── entrenar_modelo.py      # Orquestacion entrenamiento
+│   ├── detectar_anomalias.py   # Calculo de umbral y deteccion
+│   ├── guardar_modelo.py       # Guardado de pesos y metadatos
+│   └── modelos/                # Modelo entrenado y metadatos
+├── pruebas/
+│   ├── probar_etapa1.py        # Prueba integral del flujo Etapa 1
+│   └── probar_etapa2.py        # Prueba integral del flujo Etapa 2
+├── datos/                      # Directorio reservado para datos
+└── [simulador/ - NO MODIFICADO]
+
+===============================================================================
+2. ESQUEMA SQL (base_datos.sql)
+===============================================================================
+
+PRAGMA journal_mode = WAL;
+
+-- Catalogo de estaciones
+CREATE TABLE IF NOT EXISTS estaciones (
+    id TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    linea TEXT,
+    zona TEXT,
+    operador TEXT
+);
+
+-- Catalogo de motores / equipos de bombeo
+CREATE TABLE IF NOT EXISTS motores (
+    id TEXT PRIMARY KEY,
+    estacion_id TEXT NOT NULL,
+    descripcion TEXT,
+    hp REAL,
+    voltaje_nominal REAL,
+    etapas INTEGER,
+    eficiencia REAL,
+    factor_potencia_nominal REAL,
+    altura_cierre REAL,
+    caudal_diseno REAL,
+    FOREIGN KEY (estacion_id) REFERENCES estaciones(id)
+);
+
+-- Tabla principal de telemetria (29 campos)
+CREATE TABLE IF NOT EXISTS registros_telemetria (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tiempo REAL NOT NULL,
+    tiempo_simulacion TEXT,
+    timestamp INTEGER NOT NULL,
+    fecha TEXT,
+    hora TEXT,
+    motor_id TEXT NOT NULL,
+    nivel REAL NOT NULL,
+    nivel_porcentaje REAL NOT NULL,
+    voltaje REAL NOT NULL,
+    voltaje_terminal REAL NOT NULL,
+    amperaje REAL NOT NULL,
+    corriente_nominal REAL NOT NULL,
+    caudal REAL NOT NULL,
+    potencia REAL NOT NULL,
+    potencia_nominal REAL NOT NULL,
+    carga REAL NOT NULL,
+    altura REAL NOT NULL,
+    factor_potencia REAL NOT NULL,
+    estado_motor TEXT NOT NULL,
+    estado_valvula TEXT NOT NULL,
+    posicion_valvula REAL NOT NULL,
+    velocidad_rotacion REAL NOT NULL,
+    horas_operacion REAL NOT NULL,
+    caudal_total REAL NOT NULL,
+    potencia_total REAL NOT NULL,
+    corriente_total REAL NOT NULL,
+    nivel_destino REAL NOT NULL,
+    demanda REAL NOT NULL,
+    nivel_tanque_maximo REAL NOT NULL,
+    FOREIGN KEY (motor_id) REFERENCES motores(id)
+);
+
+-- Registro de eventos del simulador (incluye alarmas como eventos)
+CREATE TABLE IF NOT EXISTS eventos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tiempo REAL NOT NULL,
+    hora TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    equipo TEXT NOT NULL,
+    severidad TEXT DEFAULT 'INFO',
+    texto TEXT NOT NULL,
+    estado TEXT DEFAULT ''
+);
+
+-- Alarmas stateful (capturadas desde el gestor de alarmas)
+CREATE TABLE IF NOT EXISTS alarmas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tiempo_activacion REAL NOT NULL,
+    tiempo_desactivacion REAL,
+    id_regla TEXT NOT NULL,
+    titulo TEXT NOT NULL,
+    severidad TEXT DEFAULT 'MEDIA',
+    equipo TEXT NOT NULL,
+    mensaje TEXT NOT NULL,
+    valor REAL,
+    limite REAL,
+    veces INTEGER DEFAULT 1,
+    acknowledge INTEGER DEFAULT 0
+);
+
+-- Indices para rendimiento en consultas ML
+CREATE INDEX IF NOT EXISTS idx_telemetria_motor_tiempo ON registros_telemetria(motor_id, tiempo);
+CREATE INDEX IF NOT EXISTS idx_telemetria_tiempo ON registros_telemetria(tiempo);
+CREATE INDEX IF NOT EXISTS idx_eventos_tiempo ON eventos(tiempo);
+CREATE INDEX IF NOT EXISTS idx_eventos_tipo ON eventos(tipo);
+
+===============================================================================
+3. VISTA SQL PARA MACHINE LEARNING (view_ml.sql)
+===============================================================================
+
+CREATE VIEW IF NOT EXISTS vista_telemetria_ml AS
+SELECT
+    id,
+    tiempo,
+    timestamp,
+    fecha,
+    hora,
+    motor_id,
+    nivel,
+    nivel_porcentaje,
+    voltaje,
+    voltaje_terminal,
+    amperaje,
+    caudal,
+    potencia,
+    carga,
+    altura,
+    factor_potencia,
+    caudal_total,
+    potencia_total,
+    corriente_total,
+    nivel_destino,
+    demanda,
+    estado_motor,
+    estado_valvula,
+    posicion_valvula,
+    velocidad_rotacion,
+    horas_operacion
+FROM registros_telemetria
+ORDER BY motor_id, tiempo;
+
+-- Variables objetivo para el modelo:
+-- - Hidraulicas: nivel, caudal, altura, nivel_destino, demanda
+-- - Electricas: voltaje, voltaje_terminal, amperaje, corriente_total, factor_potencia
+-- - Operacion: carga, potencia, caudal_total, potencia_total
+-- - Estado: estado_motor, estado_valvula (requieren codificacion en Python)
+-- - Complementarias: posicion_valvula, velocidad_rotacion, horas_operacion
+--
+-- NO incluir en entrenamiento automatico sin procesamiento:
+-- - motor_id: identificador categorico
+-- - tiempo, timestamp, fecha, hora: indices temporales
+-- - potencia_nominal, corriente_nominal, nivel_tanque_maximo: constantes
+
+===============================================================================
+4. COMPONENTES PYTHON CREADOS (ETAPA 1)
+===============================================================================
+
+4.1 base_datos/crear_base_datos.py
+    - Funcion: crear_base_datos()
+    - Descripcion: Crea edgemant.db ejecutando base_datos.sql y view_ml.sql
+    - Uso: python base_datos/crear_base_datos.py
+
+4.2 base_datos/generar_datos_prueba.py
+    - Funcion: generar_datos_prueba()
+    - Descripcion: Genera 7200 registros sinteticos de telemetria para M-01 y M-02
+    - Uso: python base_datos/generar_datos_prueba.py
+    - Nota: Solo para desarrollo y pruebas
+
+4.3 base_datos/importar_csv.py
+    - Funcion: importar_csv(ruta_csv, estacion_id='EB-01')
+    - Descripcion: Importa CSV exportado por el simulador a SQLite
+    - Uso: python base_datos/importar_csv.py <ruta_csv>
+    - Nota: El CSV del simulador tiene 16 columnas; las demas quedan NULL
+
+4.4 ml/leer_view.py
+    - Funcion: leer_vista_ml() -> pandas.DataFrame
+    - Descripcion: Lee vista_telemetria_ml desde edgemant.db y retorna DataFrame
+    - Uso: python ml/leer_view.py
+    - Salida: Imprime columnas, tipos, primeras filas y estadisticas
+
+4.5 pruebas/probar_etapa1.py
+    - Funcion: main()
+    - Descripcion: Prueba integral del flujo BD -> VIEW -> Python -> DataFrame
+    - Uso: python pruebas/probar_etapa1.py
+
+===============================================================================
+5. DEPENDENCIAS PYTHON (ETAPA 1)
+===============================================================================
+
+- Python 3.14.7 (version del sistema)
+- sqlite3 (modulo estandar)
+- pandas 3.0.5
+- numpy (dependencia de pandas, verificado implicitamente)
+
+Comando para instalar dependencias (si no estan presentes):
+    pip install pandas
+
+No se requieren otras dependencias para la Etapa 1.
+
+===============================================================================
+6. HALLAZGO IMPORTANTE SOBRE EL SIMULADOR
+===============================================================================
+
+El simulador genera 29 campos por registro en la funcion capturar()
+(simulador/src/simulacion/simulador.js, lineas 68-100).
+
+Sin embargo, la funcion de exportacion CSV (simulador/src/simulacion/historial.js)
+solo incluye 16 columnas (definidas en COLUMNAS, lineas 108-125).
+
+Columnas presentes en el simulador pero AUSENTES en el CSV exportado:
+    1.  timestamp
+    2.  voltaje_terminal
+    3.  corriente_nominal
+    4.  potencia_nominal
+    5.  carga
+    6.  altura
+    7.  factor_potencia
+    8.  posicion_valvula
+    9.  velocidad_rotacion
+    10. horas_operacion
+    11. corriente_total
+    12. nivel_tanque_maximo
+
+El schema SQLite y la VIEW estan disenados para almacenar TODOS los campos
+que el simulador genera. Al importar el CSV, las columnas ausentes quedan
+como NULL en la base de datos.
+
+IMPORTANTE: El simulador NO fue modificado. Si se requiere obtener los 12
+campos faltantes para el modelo, se necesitara autorizacion explicita para
+modificar el exportador del simulador o crear un mecanismo alternativo
+de captura.
+
+===============================================================================
+7. FLUJO ETAPA 1 (VERIFICADO FUNCIONAL)
+===============================================================================
+
+[Simulador] -> [CSV exportado] -> [importar_csv.py] -> [SQLite]
+                                                     |
+                                                     v
+                                             [vista_telemetria_ml]
+                                                     |
+                                                     v
+                                             [leer_view.py]
+                                                     |
+                                                     v
+                                               [Pandas DataFrame]
+
+Prueba ejecutada:
+    python pruebas/probar_etapa1.py
+
+Resultado:
+    - Base de datos creada: base_datos/edgemant.db
+    - Registros generados: 7200
+    - Registros cargados desde VIEW: 7200
+    - Columnas disponibles: 26
+    - Estado: OK
+
+===============================================================================
+8. RUTAS ABSOLUTAS DE LOS COMPONENTES (ETAPA 1)
+===============================================================================
+
+Base de datos:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\edgemant.db
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\base_datos.sql
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\view_ml.sql
+
+Scripts Python:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\crear_base_datos.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\generar_datos_prueba.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\importar_csv.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\leer_view.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\pruebas\probar_etapa1.py
+
+===============================================================================
+9. ETAPA 2 - COMPONENTES CREADOS
+===============================================================================
+
+9.1 ml/preparar_datos.py
+    - Funcion: preparar() -> dict
+    - Descripcion: Carga datos desde la VIEW, selecciona variables ML,
+      limpia nulos/infinitos, normaliza con StandardScaler y retorna
+      X (numpy), scaler, columnas, df_raw, df_clean.
+    - Uso: python ml/preparar_datos.py
+
+9.2 ml/autoencoder.py
+    - Clase: Autoencoder(nn.Module)
+    - Arquitectura:
+        Entrada -> Dense(input_dim, max(bottleneck*2, input_dim//2)) -> ReLU
+                -> Dense(..., bottleneck_dim) -> ReLU
+                -> Dense(bottleneck_dim, max(bottleneck*2, input_dim//2)) -> ReLU
+                -> Dense(..., input_dim)
+    - Funcion: entrenar_autoencoder(X, epochs=50, batch_size=64, lr=1e-3)
+    - Funcion: calcular_error_reconstruccion(modelo, X) -> errores MSE por muestra
+    - Dependencia: PyTorch 2.14.0
+
+9.3 ml/entrenar_modelo.py
+    - Funcion: main()
+    - Descripcion: Orquesta preparacion, entrenamiento, calculo de error,
+      umbral, deteccion y guardado del modelo.
+    - Uso: python ml/entrenar_modelo.py
+
+9.4 ml/detectar_anomalias.py
+    - Funcion: calcular_umbral(errores, percentil=95)
+    - Funcion: detectar(df_raw, errores, umbral) -> df con columnas
+                error_reconstruccion, umbral, anomalia
+    - Metodo umbral: percentil 95 del error de reconstruccion
+
+9.5 ml/guardar_modelo.py
+    - Funcion: guardar(modelo, scaler, columnas, umbral, ruta)
+    - Guarda:
+        ml/modelos/autoencoder.pth
+        ml/modelos/columnas.json
+        ml/modelos/umbral.txt
+        ml/modelos/scaler.json
+
+9.6 ml/modelos/ (directorio creado automaticamente)
+    - autoencoder.pth  # pesos del modelo entrenado
+    - columnas.json    # lista de variables utilizadas
+    - umbral.txt       # valor del umbral calculado
+    - scaler.json      # parametros de StandardScaler
+
+9.7 pruebas/probar_etapa2.py
+    - Funcion: main()
+    - Descripcion: Prueba integral de la Etapa 2.
+    - Genera base_datos/resultado_etapa2.png con histograma del error.
+    - Uso: python pruebas/probar_etapa2.py
+
+===============================================================================
+10. ETAPA 2 - ARQUITECTURA Y METODOLOGIA
+===============================================================================
+
+Variables utilizadas (18):
+    - nivel
+    - nivel_porcentaje
+    - voltaje
+    - voltaje_terminal
+    - amperaje
+    - caudal
+    - potencia
+    - carga
+    - altura
+    - factor_potencia
+    - caudal_total
+    - potencia_total
+    - corriente_total
+    - nivel_destino
+    - demanda
+    - posicion_valvula
+    - velocidad_rotacion
+    - horas_operacion
+
+Normalizacion: StandardScaler (media 0, desviacion 1)
+
+Arquitectura Autoencoder:
+    - input_dim = 18
+    - bottleneck_dim = 6
+    - Encoder: Linear(18, 9) -> ReLU -> Linear(9, 6) -> ReLU
+    - Decoder: Linear(6, 9) -> ReLU -> Linear(9, 18)
+
+Entrenamiento:
+    - epochs: 50
+    - batch_size: 64
+    - learning_rate: 1e-3
+    - optimizer: Adam
+    - loss: MSE
+
+Calculo del error: MSE por muestra (error medio de reconstruccion)
+
+Umbral: Percentil 95 del error de reconstruccion
+
+Deteccion:
+    - error <= umbral -> comportamiento normal (0)
+    - error > umbral  -> posible anomalia (1)
+
+Sin etiquetas artificiales. El modelo aprende por reconstruccion.
+
+===============================================================================
+11. ETAPA 2 - RESULTADO DE LA PRUEBA
+===============================================================================
+
+Prueba ejecutada:
+    python pruebas/probar_etapa2.py
+
+Resultado:
+    - Registros cargados: 7200
+    - Variables utilizadas: 18
+    - Datos preparados: OK (7200 registros, 18 variables)
+    - Autoencoder entrenado: OK
+      * Epoch 1/50  - Loss: 0.945474
+      * Epoch 10/50 - Loss: 0.279871
+      * Epoch 20/50 - Loss: 0.252283
+      * Epoch 30/50 - Loss: 0.205158
+      * Epoch 40/50 - Loss: 0.198461
+      * Epoch 50/50 - Loss: 0.188885
+    - Umbral: 0.314516
+    - Registros normales: 6840
+    - Posibles anomalias: 360
+    - Grafico: base_datos/resultado_etapa2.png
+    - Estado: ETAPA 2 OK
+
+===============================================================================
+12. DEPENDENCIAS PYTHON (ACTUALIZADO)
+===============================================================================
+
+- Python 3.14.7
+- sqlite3 (modulo estandar)
+- pandas 3.0.5
+- numpy (dependencia de pandas)
+- scikit-learn 1.9.0 (StandardScaler)
+- torch 2.14.0+cpu (PyTorch)
+- matplotlib 3.11.1 (graficos)
+
+Comando para instalar dependencias nuevas:
+    pip install scikit-learn torch matplotlib
+
+No se instalo TensorFlow porque PyTorch ya estaba disponible.
+
+===============================================================================
+13. HALLAZGOS Y NOTAS
+===============================================================================
+
+- El simulador NO fue modificado en ningun momento.
+- La Etapa 1 se reutilizo completamente (leer_vista_ml, vista_telemetria_ml).
+- El CSV del simulador sigue teniendo 16 columnas; las variables faltantes
+  para el modelo se generaron sinteticamente en generar_datos_prueba.py.
+- Si en el futuro se desea entrenar con datos reales del simulador,
+  se requerira autorizacion explicita para modificar el exportador del simulador
+  o implementar una captura alternativa sin modificar el codigo del simulador.
+- El modelo entrenado y sus metadatos se encuentran en ml/modelos/.
+
+===============================================================================
+14. RUTAS ABSOLUTAS DE LOS COMPONENTES NUEVOS
+===============================================================================
+
+ML:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\preparar_datos.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\autoencoder.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\entrenar_modelo.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\detectar_anomalias.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\guardar_modelo.py
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\modelos\autoencoder.pth
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\modelos\columnas.json
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\modelos\umbral.txt
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\ml\modelos\scaler.json
+
+Pruebas:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\pruebas\probar_etapa2.py
+
+Resultados:
+    C:\Users\bazan\OneDrive\Desktop\proyecto edgmant\base_datos\resultado_etapa2.png
+
+===============================================================================
+15. PROXIMOS PASOS SUGERIDOS
+===============================================================================
+
+- Etapa 3: Dashboard y diagnostico de anomalias
+- Integrar deteccion en tiempo real con el simulador
+- Mejorar arquitectura del Autoencoder segun resultados
+- Probar con datos de diferentes configuraciones de simulacion
+
+===============================================================================
+FIN DEL ARCHIVO
+===============================================================================

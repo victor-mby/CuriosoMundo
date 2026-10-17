@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8" /><title>Prueba de motor</title></head>
+<body>
+  <pre id="salida">ejecutando...</pre>
+  <script type="module">
+    const salida = document.getElementById('salida');
+    const lineas = [];
+    const log = (...a) => lineas.push(a.join(' '));
+    window.addEventListener('error', (e) => lineas.push('ERROR: ' + e.message));
+    try {
+      const { crearSimulador } = await import('./src/simulacion/simulador.js');
+      const sim = crearSimulador();
+      sim.establecerVelocidad(1);
+      sim.iniciar();
+      log('== SECUENCIA DE ARRANQUE M-01 (0.1 s por muestra) ==');
+      sim.abrirValvula('M-01');
+      sim.estartrar('M-01');
+      for (let i = 0; i < 150; i += 1) {
+        sim.avanzarReloj(100);
+        const e = sim.estado();
+        const m = e.motores[0];
+        if (i % 5 === 0) {
+          log(`t=${e.tiempo.toFixed(1).padStart(5)} ${m.estado.padEnd(11)} v=${(m.velocidad * 100).toFixed(0).padStart(3)}% I=${m.corriente.toFixed(1).padStart(6)}A (${(m.corriente / m.placa.corrienteNominal * 100).toFixed(0).padStart(4)}% In) Vterm=${m.tensionTerminal.toFixed(1)} kW=${m.potencia.toFixed(2).padStart(6)} Q=${(m.caudal * 1000).toFixed(2).padStart(5)} L/s H=${m.altura.toFixed(1)} carga=${(m.carga * 100).toFixed(0)}% vlv=${(m.valvula.posicion * 100).toFixed(0)}%`);
+        }
+      }
+      log('== PARADA M-01 ==');
+      sim.parar('M-01');
+      for (let i = 0; i < 120; i += 1) {
+        sim.avanzarReloj(100);
+        const e = sim.estado();
+        const m = e.motores[0];
+        if (i % 5 === 0) log(`t=${e.tiempo.toFixed(1).padStart(5)} ${m.estado.padEnd(12)} v=${(m.velocidad * 100).toFixed(0).padStart(3)}% I=${m.corriente.toFixed(2).padStart(6)}A Q=${(m.caudal * 1000).toFixed(2).padStart(5)}`);
+      }
+      log('== PARALELO M-02 Y NIVELES ==');
+      sim.abrirValvula('M-02');
+      sim.estartrar('M-02');
+      for (let i = 0; i < 900; i += 1) {
+        sim.avanzarReloj(100);
+        const e = sim.estado();
+        const [m1, m2] = e.motores;
+        if (i % 100 === 0) {
+          log(`t=${e.tiempo.toFixed(0).padStart(4)} niv=${e.tanque.nivel.toFixed(2)} dest=${e.destino.nivel.toFixed(2)} | M01 Q=${(m1.caudal * 1000).toFixed(1)} H=${m1.altura.toFixed(1)} I=${m1.corriente.toFixed(1)} c=${(m1.carga * 100).toFixed(0)}% ret=${m1.retencionCerrada} | M02 Q=${(m2.caudal * 1000).toFixed(1)} H=${m2.altura.toFixed(1)} I=${m2.corriente.toFixed(1)} c=${(m2.carga * 100).toFixed(0)}% | Qt=${(e.totales.caudal * 1000).toFixed(1)} al=${sim.alarmas().listar().map((a) => a.id).join(' ')}`);
+        }
+      }
+      log('== CAUDAL vs POSICION DE VALVULA (M-02 throttleando) ==');
+      for (const pos of [1, 0.8, 0.6, 0.4, 0.25, 0.12, 0.05, 0]) {
+        sim.cerrarValvula('M-02');
+        for (let i = 0; i < 200; i += 1) sim.avanzarReloj(100);
+        sim.aplicarConfig({ motores: sim.config().motores.map((m) => m.id === 'M-02' ? { ...m, valvula: { ...m.valvula, tiempoRecorrido: 0.2 } } : m) });
+        if (pos > 0) { sim.abrirValvula('M-02'); }
+        sim.bus.emit('x');
+        const objetivo = () => { const e = sim.estado(); return e.motores[1].valvula.posicion; };
+        for (let i = 0; i < 400 && Math.abs(objetivo() - pos) > 0.01; i += 1) sim.avanzarReloj(100);
+        const e = sim.estado();
+        const m2 = e.motores[1];
+        log(`pos=${(m2.valvula.posicion * 100).toFixed(0).padStart(3)}% estado=${m2.valvula.estado.padEnd(8)} Q=${(m2.caudal * 1000).toFixed(2).padStart(6)} L/s H=${m2.altura.toFixed(1).padStart(5)} m I=${m2.corriente.toFixed(1).padStart(6)} A c=${(m2.carga * 100).toFixed(0).padStart(4)}% Qt=${(e.totales.caudal * 1000).toFixed(1)}`);
+      }
+      log('== CAUDAL vs NIVEL (ambos abiertos) ==');
+      sim.aplicarConfig({ motores: sim.config().motores.map((m) => m.id === 'M-02' ? { ...m, valvula: { ...m.valvula, tiempoRecorrido: 3.5 } } : m) });
+      for (const niv of [7.5, 6, 4.2, 2.5, 1.2, 0.8, 0.4, 0.15]) {
+        sim.fijarNivel(niv);
+        for (let i = 0; i < 30; i += 1) sim.avanzarReloj(100);
+        const e = sim.estado();
+        log(`nivel=${niv.toFixed(2)} succion=${e.factorSuccion.toFixed(2)} | M01 Q=${(e.motores[0].caudal * 1000).toFixed(1).padStart(5)} H=${e.motores[0].altura.toFixed(1)} I=${e.motores[0].corriente.toFixed(1)} | M02 Q=${(e.motores[1].caudal * 1000).toFixed(1).padStart(5)} H=${e.motores[1].altura.toFixed(1)} I=${e.motores[1].corriente.toFixed(1)} | Qt=${(e.totales.caudal * 1000).toFixed(1)} al=${sim.alarmas().listar().map((a) => a.id).join(' ')}`);
+      }
+      log('== FILTRADO DE CAUDAL SUAVIZADO ==');
+      const e = sim.estado();
+      log(`M01 caudal=${(e.motores[0].caudal * 1000).toFixed(2)} suavizado=${(e.motores[0].caudalSuavizado * 1000).toFixed(2)}`);
+    } catch (error) {
+      lineas.push('EXCEPCION: ' + (error && error.stack ? error.stack : error));
+    }
+    salida.textContent = lineas.join('\n');
+  </script>
+</body>
+</html>
