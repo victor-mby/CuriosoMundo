@@ -73,6 +73,48 @@ class TestImportarCSV(unittest.TestCase):
             self.assertEqual(filas[0][3], 4.2)
             self.assertEqual(filas[0][4], 'M-01')
 
+    def test_migracion_conserva_ids_y_vista_sql(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                'INSERT INTO estaciones (id, nombre) VALUES (?, ?)',
+                ('EB-01', 'Estación de prueba'),
+            )
+            conn.execute(
+                'INSERT INTO motores (id, estacion_id, descripcion) VALUES (?, ?, ?)',
+                ('M-OLD', 'EB-01', 'Motor anterior'),
+            )
+            registro = {campo: 1.0 for campo in importar_csv.COLUMNAS}
+            registro.update({
+                'tiempo': 1.0,
+                'tiempo_simulacion': '00:00:01',
+                'timestamp': 1800000000001,
+                'fecha': '18/10/2026',
+                'hora': '10:00:01',
+                'motor_id': 'M-OLD',
+                'estado_motor': 'OPERATIVO',
+                'estado_valvula': 'ABIERTA',
+            })
+            columnas = ', '.join(importar_csv.COLUMNAS)
+            parametros = ', '.join(':' + campo for campo in importar_csv.COLUMNAS)
+            cursor = conn.execute(
+                f'INSERT INTO registros_telemetria ({columnas}) VALUES ({parametros})',
+                registro,
+            )
+            id_anterior = cursor.lastrowid
+
+        importar_csv.importar_csv(self.csv_path)
+
+        with sqlite3.connect(self.db_path) as conn:
+            ids = [fila[0] for fila in conn.execute(
+                'SELECT id FROM registros_telemetria ORDER BY id'
+            ).fetchall()]
+            total_vista = conn.execute(
+                'SELECT COUNT(*) FROM vista_telemetria_ml'
+            ).fetchone()[0]
+            self.assertIn(id_anterior, ids)
+            self.assertEqual(total_vista, 2)
+
+
     def test_rechaza_csv_sin_cabeceras_esenciales(self):
         with open(self.csv_path, 'w', encoding='utf-8', newline='') as archivo:
             archivo.write('Fecha,Hora' + chr(10) + '18/10/2026,10:00:10' + chr(10))
