@@ -78,12 +78,15 @@ class TestLimpiarDatosPrueba(unittest.TestCase):
                 crear_base_datos.crear_base_datos(reiniciar=True)
                 generar_datos_prueba.generar_datos_prueba()
 
-                with sqlite3.connect(db_path) as conn:
+                conn = sqlite3.connect(db_path)
+                try:
                     fila = conn.execute(
                         'SELECT tiempo, tiempo_simulacion, caudal, potencia, carga, '
                         'caudal_total, potencia_total, amperaje, corriente_total '
                         'FROM registros_telemetria ORDER BY id LIMIT 1'
                     ).fetchone()
+                finally:
+                    conn.close()
 
                 self.assertEqual(fila[0], 0.0)
                 self.assertEqual(fila[1], '00:00:00')
