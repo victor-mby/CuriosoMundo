@@ -40,6 +40,8 @@ jobs:
         run: python -m unittest discover -s pruebas -p 'test_*.py' -v
       - name: Probar etapa 1
         run: python pruebas/probar_etapa1.py
+      - name: Preparar base de datos aislada para etapas 2 y 3
+        run: python -c "from base_datos.crear_base_datos import crear_base_datos; from base_datos.generar_datos_prueba import generar_datos_prueba; crear_base_datos(reiniciar=True); generar_datos_prueba()"
       - name: Probar etapa 2 (entrenamiento e inferencia)
         run: python pruebas/probar_etapa2.py
       - name: Probar etapa 3 (dashboard y diagnóstico)
