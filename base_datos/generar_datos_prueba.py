@@ -1,3 +1,4 @@
+import argparse
 import sqlite3
 import os
 import random
@@ -36,13 +37,36 @@ def limpiar_datos_anteriores(conn):
     cursor.execute('DELETE FROM estaciones')
 
 
-def generar_datos_prueba():
+def generar_datos_prueba(reiniciar=False):
     if not os.path.exists(DB_PATH):
         raise FileNotFoundError(f'Base de datos no encontrada: {DB_PATH}')
 
     conn = sqlite3.connect(DB_PATH)
     try:
-        limpiar_datos_anteriores(conn)
+        if reiniciar:
+            limpiar_datos_anteriores(conn)
+        else:
+            tablas = (
+                'estaciones', 'motores', 'registros_telemetria',
+                'eventos', 'alarmas', 'ingestas_csv',
+                'ingestas_simulador', 'detecciones_anomalias',
+            )
+            con_datos = []
+            for tabla in tablas:
+                existe = conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+                    (tabla,),
+                ).fetchone()
+                if existe and conn.execute(
+                    f'SELECT EXISTS(SELECT 1 FROM "{tabla}" LIMIT 1)'
+                ).fetchone()[0]:
+                    con_datos.append(tabla)
+            if con_datos:
+                raise RuntimeError(
+                    'La base de datos ya contiene datos (' + ', '.join(con_datos) + '). '
+                    'No se modificó nada. Usa generar_datos_prueba(reiniciar=True) '
+                    'solo si quieres reemplazar los datos existentes.'
+                )
         cursor = conn.cursor()
 
         cursor.execute(
@@ -153,4 +177,13 @@ def generar_datos_prueba():
 
 
 if __name__ == '__main__':
-    generar_datos_prueba()
+    parser = argparse.ArgumentParser(
+        description='Genera telemetría sintética para pruebas de EdgeMant.'
+    )
+    parser.add_argument(
+        '--reiniciar',
+        action='store_true',
+        help='Borra los datos existentes de la base de datos antes de generar los datos de prueba.',
+    )
+    args = parser.parse_args()
+    generar_datos_prueba(reiniciar=args.reiniciar)
