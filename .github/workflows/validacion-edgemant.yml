@@ -32,6 +32,8 @@ jobs:
         run: python -m unittest discover -s base_datos/pruebas -v
       - name: Probar historial del dashboard
         run: python -m unittest discover -s dashboard/pruebas -v
+      - name: Probar preparación de datos ML
+        run: python -m unittest discover -s pruebas -p 'test_*.py' -v
       - name: Probar etapa 1
         run: python pruebas/probar_etapa1.py
       - name: Probar etapa 2 (entrenamiento e inferencia)
