@@ -59,9 +59,11 @@ def seleccionar_variables(df):
     # o inventar valores; las columnas elegidas quedan guardadas con el modelo.
     disponibles = [columna for columna in VARIABLES_ML if datos[columna].notna().any()]
     ausentes = [columna for columna in VARIABLES_ML if columna not in disponibles]
-    if not disponibles:
+    if len(disponibles) < 3:
         raise ValueError(
-            'No hay variables de telemetría con valores numéricos disponibles para entrenar.'
+            'Se necesitan al menos 3 variables de telemetría con datos numéricos '
+            'para entrenar un modelo multivariable; se encontraron '
+            f'{len(disponibles)}.'
         )
     if ausentes:
         print(
