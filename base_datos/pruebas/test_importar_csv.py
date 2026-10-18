@@ -132,6 +132,10 @@ class TestImportarCSV(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'columnas básicas necesarias'):
             importar_csv.importar_csv(self.csv_path)
 
+    def test_rechaza_timestamp_no_entero(self):
+        with self.assertRaisesRegex(ValueError, 'timestamp debe ser un entero'):
+            importar_csv._numero('1800000000000.5', 'timestamp')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
