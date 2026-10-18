@@ -5,9 +5,6 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  push:
-    branches:
-      - fix/validacion-inferencia
   pull_request:
     branches:
       - integracion/simulador-edgemant
