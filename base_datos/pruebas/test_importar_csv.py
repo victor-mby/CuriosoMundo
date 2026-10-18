@@ -43,7 +43,7 @@ class TestImportarCSV(unittest.TestCase):
                 if linea.endswith(','):
                     linea = linea[:-1] + ' NOT NULL,'
             lineas.append(linea)
-        schema = '\\n'.join(lineas)
+        schema = '\n'.join(lineas)
         with sqlite3.connect(self.db_path) as conn:
             conn.executescript(schema)
             conn.executescript(
