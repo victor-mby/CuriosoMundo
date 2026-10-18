@@ -72,39 +72,38 @@ def generar_datos_prueba():
             timestamp = int(ts.timestamp() * 1000)
             fecha = ts.strftime('%d/%m/%Y')
             hora = ts.strftime('%H:%M:%S')
-            tiempo_sim = ts.strftime('%H:%M:%S')
+            tiempo_sim = f'{int(t) // 3600:02d}:{(int(t) % 3600) // 60:02d}:{int(t) % 60:02d}'
 
             for motor_id in ['M-01', 'M-02']:
+                altura = 22 + random.uniform(-0.5, 0.5)
                 if motor_id == 'M-01':
                     voltaje = 220 + random.uniform(-1.5, 1.5) + random.uniform(-3, 3) * math.sin(t / 60)
                     amperaje = max(0, 45 + random.uniform(-2, 2) + 5 * math.sin(t / 120))
                     caudal = max(0, 22 + random.uniform(-1, 1) + 3 * math.sin(t / 90))
-                    potencia = caudal * 78 * 9810 / (0.88 * 0.85) / 1000
+                    potencia = caudal * 0.001 * altura * 9810 / 0.88 / 1000
                     carga = potencia / (20 * 0.7457) * 100
-                    altura = 22 + random.uniform(-0.5, 0.5)
                     factor_potencia = 0.85 + random.uniform(-0.02, 0.02)
                     estado_motor = 'OPERATIVO' if random.random() > 0.01 else 'ARRANCANDO'
                     estado_valvula = 'ABIERTA' if random.random() > 0.01 else 'ABRIENDO'
                     posicion_valvula = 100 if random.random() > 0.01 else random.uniform(80, 99)
                     velocidad_rotacion = 100 if random.random() > 0.01 else random.uniform(90, 99)
                     horas_operacion = t / 3600
-                    caudal_total = caudal
-                    potencia_total = potencia
+                    caudal_total = caudal + 68
+                    potencia_total = potencia + (68 * 0.001 * altura * 9810 / 0.9 / 1000)
                 else:
                     voltaje = 220 + random.uniform(-1.5, 1.5) + random.uniform(-3, 3) * math.sin(t / 60)
                     amperaje = max(0, 85 + random.uniform(-3, 3) + 8 * math.sin(t / 120))
                     caudal = max(0, 68 + random.uniform(-2, 2) + 5 * math.sin(t / 90))
-                    potencia = caudal * 48.7 * 9810 / (0.9 * 0.86) / 1000
+                    potencia = caudal * 0.001 * altura * 9810 / 0.9 / 1000
                     carga = potencia / (50 * 0.7457) * 100
-                    altura = 22 + random.uniform(-0.5, 0.5)
                     factor_potencia = 0.86 + random.uniform(-0.02, 0.02)
                     estado_motor = 'OPERATIVO' if random.random() > 0.01 else 'ARRANCANDO'
                     estado_valvula = 'ABIERTA' if random.random() > 0.01 else 'ABRIENDO'
                     posicion_valvula = 100 if random.random() > 0.01 else random.uniform(80, 99)
                     velocidad_rotacion = 100 if random.random() > 0.01 else random.uniform(90, 99)
                     horas_operacion = t / 3600
-                    caudal_total = max(0, 22 + random.uniform(-1, 1)) + caudal
-                    potencia_total = max(0, 12 + random.uniform(-0.5, 0.5)) + potencia
+                    caudal_total = caudal + 22
+                    potencia_total = potencia + (22 * 0.001 * altura * 9810 / 0.88 / 1000)
 
                 nivel = 4.2 + random.uniform(-0.5, 0.5) + 0.3 * math.sin(t / 300)
                 registros.append((
@@ -117,7 +116,7 @@ def generar_datos_prueba():
                     carga, altura, factor_potencia,
                     estado_motor, estado_valvula, posicion_valvula, velocidad_rotacion, horas_operacion,
                     caudal_total, potencia_total,
-                    caudal_total * 0.02 if motor_id == 'M-01' else caudal_total * 0.05,
+                    amperaje + (85 if motor_id == 'M-01' else 45),
                     3.4 + random.uniform(-0.3, 0.3) + 0.2 * math.sin(t / 400),
                     35 + random.uniform(-2, 2) + 3 * math.sin(t / 200),
                     8.0,
@@ -134,9 +133,9 @@ def generar_datos_prueba():
         ''', registros)
 
         eventos = [
-            (0, hora, 'SISTEMA', 'ESTACIÓN', 'INFO', 'Simulación iniciada. Adquisición de datos activa.', ''),
-            (0, hora, 'OPERACIÓN', 'M-01', 'INFO', 'Orden de arranque de M-01 (20 HP) aceptada.', ''),
-            (5, hora, 'OPERACIÓN', 'M-01', 'INFO', 'M-01 en OPERATIVO (velocidad 100 %, 45.2 A).', ''),
+            (0, tiempo_inicio.strftime('%H:%M:%S'), 'SISTEMA', 'ESTACIÓN', 'INFO', 'Simulación iniciada. Adquisición de datos activa.', ''),
+            (0, tiempo_inicio.strftime('%H:%M:%S'), 'OPERACIÓN', 'M-01', 'INFO', 'Orden de arranque de M-01 (20 HP) aceptada.', ''),
+            (5, (tiempo_inicio + timedelta(seconds=5)).strftime('%H:%M:%S'), 'OPERACIÓN', 'M-01', 'INFO', 'M-01 en OPERATIVO (velocidad 100 %, 45.2 A).', ''),
         ]
         for evento in eventos:
             cursor.execute(
