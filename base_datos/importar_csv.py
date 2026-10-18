@@ -63,9 +63,19 @@ def _crear_tabla_telemetria_nullable(conn):
     if not any(restricciones.get(campo, False) for campo in CAMPOS_OPCIONALES):
         return
 
+    vistas = conn.execute(
+        "SELECT name, sql FROM sqlite_master WHERE type = 'view' AND sql IS NOT NULL"
+    ).fetchall()
+
     conn.execute('PRAGMA foreign_keys = OFF')
     try:
         conn.execute('BEGIN IMMEDIATE')
+        # SQLite puede impedir renombrar la tabla nueva mientras la vista
+        # conserva una referencia temporal a la tabla que se está sustituyendo.
+        for nombre_vista, _ in vistas:
+            nombre_seguro = nombre_vista.replace('"', '""')
+            conn.execute(f'DROP VIEW "{nombre_seguro}"')
+
         conn.execute('''
             CREATE TABLE registros_telemetria_nueva (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -116,6 +126,8 @@ def _crear_tabla_telemetria_nullable(conn):
             'CREATE INDEX IF NOT EXISTS idx_telemetria_tiempo '
             'ON registros_telemetria(tiempo)'
         )
+        for _, sql_vista in vistas:
+            conn.execute(sql_vista)
         conn.commit()
     except Exception:
         conn.rollback()
