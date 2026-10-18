@@ -334,7 +334,7 @@ def importar_csv(ruta_csv, estacion_id='EB-01'):
     )
     if faltantes_ml:
         print('Campos no disponibles en este CSV (se guardaron como NULL): ' + ', '.join(faltantes_ml))
-        print('Estas filas incompletas no serán utilizables por el modelo que requiere todas sus variables.')
+        print('El modelo omitirá las variables sin datos; las filas incompletas para las variables elegidas se descartarán sin imputar valores. Vuelve a entrenar el modelo después de importar el CSV.')
 
 
 if __name__ == '__main__':
