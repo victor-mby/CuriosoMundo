@@ -39,8 +39,12 @@ class TestCrearBaseDatos(unittest.TestCase):
 
     def test_conserva_datos_si_no_se_pide_reinicio(self):
         crear_base_datos.crear_base_datos()
-        with sqlite3.connect(crear_base_datos.DB_PATH) as conn:
+        conn = sqlite3.connect(crear_base_datos.DB_PATH)
+        try:
             conn.execute('INSERT INTO muestras (valor) VALUES (?)', ('telemetria',))
+            conn.commit()
+        finally:
+            conn.close()
 
         crear_base_datos.crear_base_datos()
 
@@ -50,8 +54,12 @@ class TestCrearBaseDatos(unittest.TestCase):
 
     def test_reinicia_solo_si_se_solicita_expresamente(self):
         crear_base_datos.crear_base_datos()
-        with sqlite3.connect(crear_base_datos.DB_PATH) as conn:
+        conn = sqlite3.connect(crear_base_datos.DB_PATH)
+        try:
             conn.execute('INSERT INTO muestras (valor) VALUES (?)', ('telemetria',))
+            conn.commit()
+        finally:
+            conn.close()
 
         crear_base_datos.crear_base_datos(reiniciar=True)
 
