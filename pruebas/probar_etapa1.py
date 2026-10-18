@@ -17,9 +17,9 @@ def main():
     print('=== EdgeMant - Prueba Etapa 1 ===')
     print()
 
-    print('Paso 1: Crear base de datos...')
+    print('Paso 1: Crear base de datos de prueba (reinicio explícito)...')
     crear = cargar_modulo('crear_base_datos', os.path.join(BASE_DATOS_DIR, 'crear_base_datos.py'))
-    crear.crear_base_datos()
+    crear.crear_base_datos(reiniciar=True)
     print()
 
     print('Paso 2: Generar datos de prueba...')
@@ -35,7 +35,7 @@ def main():
     if len(df) > 0:
         print('OK: Flujo BASE DE DATOS -> VIEW -> PYTHON -> DATAFRAME funcionando.')
     else:
-        print('ERROR: No se cargaron datos.')
+        raise RuntimeError('ERROR: No se cargaron datos de prueba.')
 
 
 if __name__ == '__main__':
