@@ -12,8 +12,9 @@ from generar_datos_prueba import limpiar_datos_anteriores
 
 class TestLimpiarDatosPrueba(unittest.TestCase):
     def test_limpia_registros_y_claves_idempotentes_antiguas(self):
-        with tempfile.NamedTemporaryFile(suffix='.db') as archivo:
-            conn = sqlite3.connect(archivo.name)
+        with tempfile.TemporaryDirectory() as directorio:
+            ruta_db = Path(directorio) / 'prueba.db'
+            conn = sqlite3.connect(ruta_db)
             try:
                 conn.executescript("""
                     PRAGMA foreign_keys = ON;
