@@ -29,14 +29,21 @@ class TestImportarCSV(unittest.TestCase):
 
         schema = (ROOT / 'base_datos' / 'base_datos.sql').read_text(encoding='utf-8')
         # Simula una base anterior, donde los campos ausentes del CSV eran NOT NULL.
-        for campo in (
+        campos_legacy = {
             'timestamp', 'voltaje_terminal', 'corriente_nominal', 'potencia_nominal',
             'carga', 'altura', 'factor_potencia', 'posicion_valvula',
             'velocidad_rotacion', 'horas_operacion', 'corriente_total',
             'nivel_tanque_maximo',
-        ):
-            schema = schema.replace(f'{campo} INTEGER,', f'{campo} INTEGER NOT NULL,')
-            schema = schema.replace(f'{campo} REAL,', f'{campo} REAL NOT NULL,')
+        }
+        lineas = []
+        for linea in schema.splitlines():
+            partes = linea.strip().split()
+            if len(partes) >= 2 and partes[0] in campos_legacy and 'NOT NULL' not in linea:
+                linea = linea.rstrip()
+                if linea.endswith(','):
+                    linea = linea[:-1] + ' NOT NULL,'
+            lineas.append(linea)
+        schema = '\\n'.join(lineas)
         with sqlite3.connect(self.db_path) as conn:
             conn.executescript(schema)
             conn.executescript(
