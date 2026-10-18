@@ -8,7 +8,7 @@ import torch
 from sklearn.preprocessing import StandardScaler
 
 # Reutiliza exactamente la arquitectura utilizada durante el entrenamiento.
-from autoencoder import Autoencoder
+from autoencoder import Autoencoder, calcular_error_reconstruccion
 
 
 RUTA_DB = os.path.join(os.path.dirname(__file__), '..', 'base_datos', 'edgemant.db')
@@ -125,15 +125,6 @@ def preparar_datos(df, columnas):
 
 def normalizar(df, scaler):
     return scaler.transform(df.values)
-
-
-def calcular_error_reconstruccion(modelo, X):
-    modelo.eval()
-    X_tensor = torch.as_tensor(X, dtype=torch.float32)
-    with torch.no_grad():
-        reconstruido = modelo(X_tensor).cpu().numpy()
-    errores = np.mean((X - reconstruido) ** 2, axis=1)
-    return errores, reconstruido
 
 
 def inferir():
