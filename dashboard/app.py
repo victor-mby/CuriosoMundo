@@ -5,11 +5,20 @@ from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
 
-SERVICIOS_DIR = os.path.join(os.path.dirname(__file__), 'servicios')
-if SERVICIOS_DIR not in sys.path:
-    sys.path.insert(0, SERVICIOS_DIR)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+SERVICIOS_DIR = os.path.join(BASE_DIR, 'dashboard', 'servicios')
+ML_DIR = os.path.join(BASE_DIR, 'ml')
 
-from dashboard import obtener_dashboard, ejecutar_inferencia_y_guardar
+for ruta in (SERVICIOS_DIR, ML_DIR):
+    if ruta not in sys.path:
+        sys.path.insert(0, ruta)
+
+# Funciona tanto ejecutando el archivo directamente como importándolo
+# como módulo (por ejemplo, desde un servidor WSGI o pruebas).
+try:
+    from .servicios.dashboard import obtener_dashboard, ejecutar_inferencia_y_guardar
+except ImportError:
+    from servicios.dashboard import obtener_dashboard, ejecutar_inferencia_y_guardar
 
 
 @app.route('/')
