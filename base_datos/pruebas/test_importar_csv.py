@@ -81,7 +81,8 @@ class TestImportarCSV(unittest.TestCase):
             self.assertEqual(filas[0][4], 'M-01')
 
     def test_migracion_conserva_ids_y_vista_sql(self):
-        with sqlite3.connect(self.db_path) as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             conn.execute(
                 'INSERT INTO estaciones (id, nombre) VALUES (?, ?)',
                 ('EB-01', 'Estación de prueba'),
@@ -108,6 +109,9 @@ class TestImportarCSV(unittest.TestCase):
                 registro,
             )
             id_anterior = cursor.lastrowid
+            conn.commit()
+        finally:
+            conn.close()
 
         importar_csv.importar_csv(self.csv_path)
 
