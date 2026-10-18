@@ -102,6 +102,41 @@ class TestLimpiarDatosPrueba(unittest.TestCase):
                 crear_base_datos.DB_PATH = db_original
                 generar_datos_prueba.DB_PATH = generar_original
 
+    def test_no_borra_datos_existentes_sin_confirmacion(self):
+        with tempfile.TemporaryDirectory() as directorio:
+            db_path = str(Path(directorio) / 'edgemant.db')
+            db_original = crear_base_datos.DB_PATH
+            generar_original = generar_datos_prueba.DB_PATH
+            try:
+                crear_base_datos.DB_PATH = db_path
+                generar_datos_prueba.DB_PATH = db_path
+                crear_base_datos.crear_base_datos(reiniciar=True)
+
+                conn = sqlite3.connect(db_path)
+                try:
+                    conn.execute(
+                        'INSERT INTO estaciones (id, nombre) VALUES (?, ?)',
+                        ('ESTACION-REAL', 'No borrar'),
+                    )
+                    conn.commit()
+                finally:
+                    conn.close()
+
+                with self.assertRaisesRegex(RuntimeError, 'No se modificó nada'):
+                    generar_datos_prueba.generar_datos_prueba()
+
+                conn = sqlite3.connect(db_path)
+                try:
+                    filas = conn.execute(
+                        'SELECT id, nombre FROM estaciones'
+                    ).fetchall()
+                finally:
+                    conn.close()
+                self.assertEqual(filas, [('ESTACION-REAL', 'No borrar')])
+            finally:
+                crear_base_datos.DB_PATH = db_original
+                generar_datos_prueba.DB_PATH = generar_original
+
 
 if __name__ == '__main__':
     unittest.main()
