@@ -54,16 +54,27 @@ def importar_csv(ruta_csv, estacion_id='EB-01'):
         'nivel_destino': 'Nivel destino (m)',
         'demanda': 'Demanda (L/s)',
     }
-    columnas_faltantes = sorted(
+    campos_no_exportados = sorted(
         campo for campo in columnas_requeridas
         if campo not in columnas_csv
     )
-    if columnas_faltantes:
+    cabeceras_faltantes = sorted(
+        cabecera for cabecera in columnas_csv.values()
+        if cabecera not in encabezados
+    )
+    if campos_no_exportados or cabeceras_faltantes:
+        detalles = []
+        if campos_no_exportados:
+            detalles.append(
+                'variables no exportadas: ' + ', '.join(campos_no_exportados)
+            )
+        if cabeceras_faltantes:
+            detalles.append(
+                'columnas esperadas no encontradas: ' + ', '.join(cabeceras_faltantes)
+            )
         raise ValueError(
-            'No se puede importar este CSV para EdgeMant: faltan variables '
-            'que el exportador actual no incluye: '
-            + ', '.join(columnas_faltantes)
-            + '. No se generaron datos ficticios ni se modificó el simulador. '
+            'No se puede importar este CSV para EdgeMant (' + '; '.join(detalles) + '). '
+            'No se generaron datos ficticios ni se modificó el simulador. '
             'Usa la captura de telemetría completa mediante integracion/servidor_ingesta.py.'
         )
 
