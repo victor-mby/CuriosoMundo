@@ -45,7 +45,7 @@ class TestPrepararDatos(unittest.TestCase):
         self.assertEqual(limpias.index.tolist(), [0, 2])
         self.assertFalse(limpias.isna().any().any())
 
-    def test_falla_si_no_hay_ninguna_variable_con_datos(self):
+    def test_falla_si_no_hay_variables_con_datos(self):
         columnas = [
             'nivel', 'nivel_porcentaje', 'voltaje', 'voltaje_terminal',
             'amperaje', 'caudal', 'potencia', 'carga', 'altura',
@@ -54,7 +54,22 @@ class TestPrepararDatos(unittest.TestCase):
             'posicion_valvula', 'velocidad_rotacion', 'horas_operacion',
         ]
         df = pd.DataFrame({columna: [np.nan, np.nan] for columna in columnas})
-        with self.assertRaisesRegex(ValueError, 'No hay variables'):
+        with self.assertRaisesRegex(ValueError, 'al menos 3 variables'):
+            seleccionar_variables(df)
+
+    def test_rechaza_menos_de_tres_variables_utilizables(self):
+        columnas = [
+            'nivel', 'nivel_porcentaje', 'voltaje', 'voltaje_terminal',
+            'amperaje', 'caudal', 'potencia', 'carga', 'altura',
+            'factor_potencia', 'caudal_total', 'potencia_total',
+            'corriente_total', 'nivel_destino', 'demanda',
+            'posicion_valvula', 'velocidad_rotacion', 'horas_operacion',
+        ]
+        datos = {columna: [np.nan, np.nan] for columna in columnas}
+        datos['nivel'] = [1.0, 2.0]
+        datos['voltaje'] = [220.0, 221.0]
+        df = pd.DataFrame(datos)
+        with self.assertRaisesRegex(ValueError, 'al menos 3 variables'):
             seleccionar_variables(df)
 
 
