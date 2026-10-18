@@ -75,7 +75,7 @@ class TestImportarCSV(unittest.TestCase):
 
     def test_rechaza_csv_sin_cabeceras_esenciales(self):
         with open(self.csv_path, 'w', encoding='utf-8', newline='') as archivo:
-            archivo.write('Fecha,Hora\\n18/10/2026,10:00:10\\n')
+            archivo.write('Fecha,Hora' + chr(10) + '18/10/2026,10:00:10' + chr(10))
         with self.assertRaisesRegex(ValueError, 'columnas básicas necesarias'):
             importar_csv.importar_csv(self.csv_path)
 
