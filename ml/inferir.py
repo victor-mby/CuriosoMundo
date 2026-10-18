@@ -146,9 +146,9 @@ def inferir():
     # Conservar metadatos y variables de sensores: el diagnóstico necesita
     # los valores originales para explicar qué variables se desviaron.
     indices_validos = df_clean.index
-    columnas_resultado = [
+    columnas_identificacion = [
         columna for columna in COLUMNAS_IDENTIFICACION if columna in df_raw.columns
-    ] + columnas
+    ]
     faltantes_identificacion = [
         columna for columna in ('id', 'motor_id', 'tiempo')
         if columna not in df_raw.columns
@@ -159,7 +159,10 @@ def inferir():
             + ', '.join(faltantes_identificacion)
         )
 
-    df_resultado = df_raw.loc[indices_validos, columnas_resultado].copy().reset_index(drop=True)
+    # Usar los valores numéricos ya validados, no posibles cadenas originales
+    # que SQLite podría devolver por su tipado dinámico.
+    df_resultado = df_raw.loc[indices_validos, columnas_identificacion].copy()
+    df_resultado = df_resultado.join(df_clean, how='left').reset_index(drop=True)
     df_resultado['error_reconstruccion'] = errores
     df_resultado['umbral'] = umbral
     df_resultado['anomalia'] = (df_resultado['error_reconstruccion'] > umbral).astype(int)
