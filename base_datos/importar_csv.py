@@ -111,7 +111,7 @@ def _crear_tabla_telemetria_nullable(conn):
                 FOREIGN KEY (motor_id) REFERENCES motores(id)
             )
         ''')
-        nombres = ', '.join(COLUMNAS)
+        nombres = ', '.join(('id',) + COLUMNAS)
         conn.execute(
             f'INSERT INTO registros_telemetria_nueva ({nombres}) '
             f'SELECT {nombres} FROM registros_telemetria'
