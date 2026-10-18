@@ -160,6 +160,8 @@ def _numero(valor, campo, obligatorio=False):
     if not math.isfinite(numero):
         raise ValueError(f'El campo {campo} debe ser un número finito.')
     if campo == 'timestamp':
+        if not numero.is_integer():
+            raise ValueError(f'El campo timestamp debe ser un entero; se recibió {valor!r}.')
         return int(numero)
     return numero
 
