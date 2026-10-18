@@ -232,12 +232,19 @@ def importar_csv(ruta_csv, estacion_id='EB-01'):
 
         faltantes = []
         for campo, variantes in ENCABEZADOS.items():
+            if campo == 'tiempo_simulacion':
+                continue
             if campo not in encabezados and not any(v in encabezados for v in variantes):
                 faltantes.append(variantes[0])
-        # El tiempo puede venir como campo canónico o como texto HH:MM:SS.
-        if 'tiempo' not in encabezados and not any(
-            v in encabezados for v in ENCABEZADOS['tiempo_simulacion']
-        ) and 'Tiempo simulación (s)' not in encabezados and 'Tiempo simulacion (s)' not in encabezados:
+        # El tiempo puede venir en segundos o como texto HH:MM:SS.
+        tiene_tiempo = any(
+            nombre in encabezados
+            for nombre in (
+                'tiempo', 'tiempo_simulacion', 'Tiempo simulación',
+                'Tiempo simulacion', 'Tiempo simulación (s)', 'Tiempo simulacion (s)',
+            )
+        )
+        if not tiene_tiempo:
             faltantes.append('Tiempo simulación')
         if faltantes:
             raise ValueError(
