@@ -50,11 +50,11 @@ def ejecutar_inferencia_y_guardar():
 
 
 def obtener_dashboard():
-    asegurar_tabla_detecciones()
-    estadisticas = obtener_estadisticas()
-
     if not os.path.isfile(DB_PATH):
         raise FileNotFoundError(f'No se encontró la base de datos: {DB_PATH}')
+
+    asegurar_tabla_detecciones()
+    estadisticas = obtener_estadisticas()
 
     with sqlite3.connect(DB_PATH) as conn:
         total_registros = conn.execute(
