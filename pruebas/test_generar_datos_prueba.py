@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'base_datos'))
 
+import crear_base_datos
+import generar_datos_prueba
 from generar_datos_prueba import limpiar_datos_anteriores
 
 
@@ -64,6 +66,38 @@ class TestLimpiarDatosPrueba(unittest.TestCase):
                     self.assertEqual(cantidad, 0, tabla)
             finally:
                 conn.close()
+
+    def test_generador_usa_tiempo_transcurrido_y_potencia_en_kw(self):
+        with tempfile.TemporaryDirectory() as directorio:
+            db_path = str(Path(directorio) / 'edgemant.db')
+            db_original = crear_base_datos.DB_PATH
+            generar_original = generar_datos_prueba.DB_PATH
+            try:
+                crear_base_datos.DB_PATH = db_path
+                generar_datos_prueba.DB_PATH = db_path
+                crear_base_datos.crear_base_datos(reiniciar=True)
+                generar_datos_prueba.generar_datos_prueba()
+
+                with sqlite3.connect(db_path) as conn:
+                    fila = conn.execute(
+                        'SELECT tiempo, tiempo_simulacion, caudal, potencia, carga, '
+                        'caudal_total, potencia_total, amperaje, corriente_total '
+                        'FROM registros_telemetria ORDER BY id LIMIT 1'
+                    ).fetchone()
+
+                self.assertEqual(fila[0], 0.0)
+                self.assertEqual(fila[1], '00:00:00')
+                self.assertGreater(fila[2], 0)
+                self.assertGreater(fila[3], 0)
+                self.assertLess(fila[3], 10)  # kW, no miles de veces mayor por unidades.
+                self.assertGreater(fila[4], 0)
+                self.assertLess(fila[4], 100)
+                self.assertGreater(fila[5], fila[2])
+                self.assertGreater(fila[6], fila[3])
+                self.assertGreater(fila[8], fila[7])
+            finally:
+                crear_base_datos.DB_PATH = db_original
+                generar_datos_prueba.DB_PATH = generar_original
 
 
 if __name__ == '__main__':
