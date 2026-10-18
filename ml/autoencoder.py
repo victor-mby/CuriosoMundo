@@ -53,11 +53,23 @@ def entrenar_autoencoder(X, epochs=50, batch_size=64, lr=1e-3, device=None):
 
 
 def calcular_error_reconstruccion(modelo, X, device=None):
+    X = np.asarray(X, dtype=np.float32)
+    if X.ndim != 2 or X.shape[0] == 0:
+        raise ValueError('La entrada para calcular errores debe ser una matriz no vacía.')
+    if not np.isfinite(X).all():
+        raise ValueError('La entrada para calcular errores contiene valores no finitos.')
+
     if device is None:
         device = next(modelo.parameters()).device
     modelo.eval()
-    X_tensor = torch.tensor(X, dtype=torch.float32).to(device)
+    X_tensor = torch.as_tensor(X, dtype=torch.float32, device=device)
     with torch.no_grad():
         reconstruido = modelo(X_tensor).cpu().numpy()
+
+    if not np.isfinite(reconstruido).all():
+        raise ValueError('El Autoencoder produjo valores no finitos durante la reconstrucción.')
+
     errores = np.mean((X - reconstruido) ** 2, axis=1)
+    if not np.isfinite(errores).all():
+        raise ValueError('El error de reconstrucción contiene valores no finitos.')
     return errores, reconstruido
