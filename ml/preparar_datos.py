@@ -45,14 +45,31 @@ def seleccionar_variables(df):
     faltantes = [columna for columna in VARIABLES_ML if columna not in df.columns]
     if faltantes:
         raise ValueError(
-            'La vista de telemetría no contiene todas las variables requeridas por el modelo: '
+            'La vista de telemetría no contiene las columnas esperadas por el modelo: '
             + ', '.join(faltantes)
         )
 
     datos = df.loc[:, VARIABLES_ML].copy()
     for columna in VARIABLES_ML:
         datos[columna] = pd.to_numeric(datos[columna], errors='coerce')
-    return datos, VARIABLES_ML.copy()
+    datos = datos.replace([np.inf, -np.inf], np.nan)
+
+    # Los CSV del simulador no incluyen todas las variables de telemetría.
+    # Excluir solo columnas sin ningún dato real evita descartar todo el lote
+    # o inventar valores; las columnas elegidas quedan guardadas con el modelo.
+    disponibles = [columna for columna in VARIABLES_ML if datos[columna].notna().any()]
+    ausentes = [columna for columna in VARIABLES_ML if columna not in disponibles]
+    if not disponibles:
+        raise ValueError(
+            'No hay variables de telemetría con valores numéricos disponibles para entrenar.'
+        )
+    if ausentes:
+        print(
+            'Variables sin datos en esta fuente (no se usarán en este entrenamiento): '
+            + ', '.join(ausentes)
+        )
+
+    return datos.loc[:, disponibles].copy(), disponibles
 
 
 def limpiar_datos(df):
@@ -67,9 +84,8 @@ def limpiar_datos(df):
         )
     if datos.empty:
         raise ValueError(
-            'No quedan registros completos para entrenar. La vista puede contener '
-            'telemetría CSV con variables no disponibles; usa datos completos del '
-            'receptor de integración o datos de prueba completos.'
+            'No quedan registros completos para entrenar con las variables disponibles. '
+            'Revisa la calidad de la telemetría importada.'
         )
     return datos
 
