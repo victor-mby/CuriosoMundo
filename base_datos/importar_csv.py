@@ -11,8 +11,61 @@ def inferir_motor_id(fila):
 
 
 def importar_csv(ruta_csv, estacion_id='EB-01'):
+    if not os.path.exists(ruta_csv):
+        raise FileNotFoundError(f'CSV no encontrado: {ruta_csv}')
     if not os.path.exists(DB_PATH):
         raise FileNotFoundError(f'Base de datos no encontrada: {DB_PATH}')
+
+    # El CSV actual del simulador exporta solo 16 columnas. No se deben
+    # inventar valores para variables eléctricas/hidráulicas que no exporta:
+    # varias son NOT NULL en SQLite y el modelo necesita datos completos.
+    columnas_requeridas = {
+        'timestamp',
+        'voltaje_terminal',
+        'corriente_nominal',
+        'potencia_nominal',
+        'carga',
+        'altura',
+        'factor_potencia',
+        'posicion_valvula',
+        'velocidad_rotacion',
+        'horas_operacion',
+        'corriente_total',
+        'nivel_tanque_maximo',
+    }
+    with open(ruta_csv, 'r', encoding='utf-8-sig', newline='') as archivo:
+        lector = csv.DictReader(archivo)
+        encabezados = set(lector.fieldnames or [])
+    columnas_csv = {
+        'fecha': 'Fecha',
+        'hora': 'Hora',
+        'tiempo_simulacion': 'Tiempo simulación',
+        'motor_id': 'Motor',
+        'nivel': 'Nivel (m)',
+        'nivel_porcentaje': 'Nivel (%)',
+        'voltaje': 'Voltaje (V)',
+        'amperaje': 'Amperaje (A)',
+        'caudal': 'Caudal (L/s)',
+        'potencia': 'Potencia (kW)',
+        'estado_motor': 'Estado motor',
+        'estado_valvula': 'Estado válvula',
+        'caudal_total': 'Caudal total (L/s)',
+        'potencia_total': 'Potencia total (kW)',
+        'nivel_destino': 'Nivel destino (m)',
+        'demanda': 'Demanda (L/s)',
+    }
+    columnas_faltantes = sorted(
+        campo for campo in columnas_requeridas
+        if campo not in columnas_csv
+    )
+    if columnas_faltantes:
+        raise ValueError(
+            'No se puede importar este CSV para EdgeMant: faltan variables '
+            'que el exportador actual no incluye: '
+            + ', '.join(columnas_faltantes)
+            + '. No se generaron datos ficticios ni se modificó el simulador. '
+            'Usa la captura de telemetría completa mediante integracion/servidor_ingesta.py.'
+        )
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
