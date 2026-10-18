@@ -1,0 +1,28 @@
+name: Validación EdgeMant
+
+on:
+  push:
+    branches:
+      - fix/validacion-inferencia
+  pull_request:
+    branches:
+      - integracion/simulador-edgemant
+
+jobs:
+  pruebas-python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar sintaxis Python
+        run: python -m compileall -q base_datos dashboard integracion ml pruebas
+      - name: Probar ingesta de telemetría
+        run: python -m unittest discover -s integracion/pruebas -v
+      - name: Probar importador CSV
+        run: python -m unittest discover -s base_datos/pruebas -v
+      - name: Probar historial del dashboard
+        run: python -m unittest discover -s dashboard/pruebas -v
