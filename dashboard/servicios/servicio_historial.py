@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import sqlite3
 
@@ -48,11 +48,11 @@ def asegurar_tabla_detecciones(conn=None):
 
 
 def guardar_deteccion(deteccion):
-    """Guarda una detección una sola vez por registro de telemetría."""
+    """Guarda una detecciÃ³n una sola vez por registro de telemetrÃ­a."""
     conn = _conectar()
     try:
         asegurar_tabla_detecciones(conn)
-        # Serializar la comprobación y la inserción para evitar duplicados
+        # Serializar la comprobaciÃ³n y la inserciÃ³n para evitar duplicados
         # cuando dos peticiones del dashboard analizan el mismo registro.
         conn.execute('BEGIN IMMEDIATE')
         registro_id = deteccion.get('id')
@@ -144,3 +144,4 @@ def obtener_estadisticas():
     finally:
         conn.close()
     return {'total': total, 'por_severidad': {fila[0]: fila[1] for fila in filas}}
+
