@@ -8,13 +8,12 @@ import torch
 from sklearn.preprocessing import StandardScaler
 
 # Reutiliza exactamente la arquitectura utilizada durante el entrenamiento.
-from autoencoder import Autoencoder, calcular_error_reconstruccion
 
 
 RUTA_DB = os.path.join(os.path.dirname(__file__), '..', 'base_datos', 'edgemant.db')
 RUTA_MODELOS = os.path.join(os.path.dirname(__file__), 'modelos')
 COLUMNAS_IDENTIFICACION = ('id', 'motor_id', 'tiempo', 'fecha', 'hora')
-
+from .autoencoder import Autoencoder, calcular_error_reconstruccion
 
 def cargar_modelo():
     ruta_columnas = os.path.join(RUTA_MODELOS, 'columnas.json')
