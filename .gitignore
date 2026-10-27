@@ -1,3 +1,19 @@
+# Python
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Entornos y configuración local
+.venv/
+venv/
+.env
+.env.*
+
+# SQLite local (no versionar datos operativos)
 base_datos/edgemant.db
+base_datos/edgemant.db-wal
+base_datos/edgemant.db-shm
+*.sqlite-wal
+*.sqlite-shm
