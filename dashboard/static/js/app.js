@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     cargarDashboard();
     comprobarOllama();
+    // Refresca los contadores y detecciones cuando llega nueva telemetría.
+    window.setInterval(cargarDashboard, 10000);
     window.setInterval(comprobarOllama, 15000);
 });
 
