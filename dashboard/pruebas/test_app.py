@@ -74,6 +74,21 @@ class TestDashboardAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertFalse(response.get_json()["ok"])
 
+    @patch("dashboard.servicios.ollama_stream.iterar_respuesta")
+    def test_asistente_stream_devuelve_eventos_del_modelo(self, iterar):
+        iterar.return_value = iter([
+            {"token": "Hola "},
+            {"token": "operador."},
+            {"done": True, "modelo": "qwen3:1.7b"},
+        ])
+        response = self.client.post(
+            "/api/asistente/stream", json={"pregunta": "¿Qué indica el sistema?"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/event-stream", response.content_type)
+        self.assertIn('"token": "Hola "', response.get_data(as_text=True))
+        self.assertIn("[DONE]", response.get_data(as_text=True))
+
 
 if __name__ == "__main__":
     unittest.main()
