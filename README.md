@@ -1,6 +1,6 @@
 # EdgeMant
 
-Sistema local de apoyo al mantenimiento predictivo de bombas centrífugas. El proyecto incluye un simulador, receptor de telemetría, almacenamiento SQLite, análisis de anomalías y dashboard Flask con un asistente local basado en Ollama.
+Sistema local de apoyo al mantenimiento predictivo de bombas centrífugas. El proyecto incluye un simulador, receptor de telemetría, almacenamiento SQLite, análisis de anomalías y dashboard Flask con un asistente local basado en Ollama. Las respuestas del asistente se transmiten al chat en fragmentos mientras el modelo las genera.
 
 ## Requisitos
 
