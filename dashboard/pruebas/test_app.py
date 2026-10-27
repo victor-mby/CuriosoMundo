@@ -14,31 +14,66 @@ class TestDashboardAPI(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
 
-    @patch('dashboard.app.obtener_dashboard')
+    @patch("dashboard.app.obtener_dashboard")
     def test_api_dashboard_devuelve_json(self, obtener_dashboard):
         obtener_dashboard.return_value = {
-            'estadisticas': {'total_registros': 2, 'total_detecciones': 1},
-            'historial': [],
-            'motores': ['M-01'],
+            "estadisticas": {"total_registros": 2, "total_detecciones": 1},
+            "historial": [],
+            "motores": ["M-01"],
         }
-        response = self.client.get('/api/dashboard')
+        response = self.client.get("/api/dashboard")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json()['motores'], ['M-01'])
+        self.assertTrue(response.get_json()["ok"])
+        self.assertEqual(response.get_json()["motores"], ["M-01"])
 
-    @patch('dashboard.app.ejecutar_inferencia_y_guardar')
+    @patch("dashboard.app.ejecutar_inferencia_y_guardar")
     def test_api_inferir_devuelve_cantidad_guardada(self, ejecutar):
         ejecutar.return_value = 3
-        response = self.client.post('/api/inferir')
+        response = self.client.post("/api/inferir")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json(), {'ok': True, 'detecciones_guardadas': 3})
+        self.assertEqual(response.get_json(), {"ok": True, "detecciones_guardadas": 3})
 
-    @patch('dashboard.app.obtener_dashboard')
+    @patch("dashboard.app.obtener_dashboard")
     def test_api_dashboard_informa_error_con_http_500(self, obtener_dashboard):
-        obtener_dashboard.side_effect = RuntimeError('base no disponible')
-        response = self.client.get('/api/dashboard')
+        obtener_dashboard.side_effect = RuntimeError("base no disponible")
+        response = self.client.get("/api/dashboard")
         self.assertEqual(response.status_code, 500)
-        self.assertFalse(response.get_json()['ok'])
+        self.assertFalse(response.get_json()["ok"])
+
+    def test_asistente_rechaza_json_invalido(self):
+        response = self.client.post("/api/asistente", data="no-json", content_type="text/plain")
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.get_json()["ok"])
+
+    def test_asistente_rechaza_pregunta_vacia(self):
+        response = self.client.post("/api/asistente", json={"pregunta": "   "})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("pregunta", response.get_json()["error"])
+
+    def test_asistente_rechaza_pregunta_demasiado_larga(self):
+        response = self.client.post("/api/asistente", json={"pregunta": "x" * 1001})
+        self.assertEqual(response.status_code, 413)
+
+    @patch("dashboard.servicios.ollama.consultar_ollama")
+    def test_asistente_devuelve_respuesta_del_modelo(self, consultar):
+        consultar.return_value = {
+            "ok": True, "conectado": True, "modelo": "qwen3:1.7b",
+            "respuesta": "Los datos disponibles no bastan para confirmar una avería.",
+        }
+        response = self.client.post("/api/asistente", json={"pregunta": "¿Hay una avería?"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["modelo"], "qwen3:1.7b")
+        self.assertIn("no bastan", response.get_json()["respuesta"])
+
+    @patch("dashboard.servicios.ollama.consultar_ollama")
+    def test_asistente_informa_ollama_no_disponible(self, consultar):
+        consultar.return_value = {
+            "ok": False, "conectado": False, "error": "Ollama no está disponible."
+        }
+        response = self.client.post("/api/asistente", json={"pregunta": "Estado de la bomba"})
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(response.get_json()["ok"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
