@@ -1,156 +1,246 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const boton = document.getElementById('btn-inferir');
-    if (boton) boton.addEventListener('click', ejecutarInferencia);
+"use strict";
+
+document.addEventListener("DOMContentLoaded", () => {
+    const inferir = document.getElementById("btn-inferir");
+    const formulario = document.getElementById("asistente-formulario");
+    if (inferir) inferir.addEventListener("click", ejecutarInferencia);
+    if (formulario) formulario.addEventListener("submit", enviarPregunta);
+
+    document.querySelectorAll(".pregunta-rapida").forEach((boton) => {
+        boton.addEventListener("click", () => {
+            const input = document.getElementById("asistente-input");
+            if (!input) return;
+            input.value = boton.dataset.pregunta || "";
+            input.focus();
+            formulario?.requestSubmit();
+        });
+    });
+
     cargarDashboard();
+    comprobarOllama();
+    // Refresca los contadores y detecciones cuando llega nueva telemetría.
+    window.setInterval(cargarDashboard, 10000);
+    window.setInterval(comprobarOllama, 15000);
 });
 
-async function cargarDashboard() {
+async function pedirJson(url, opciones = {}) {
+    const respuesta = await fetch(url, {
+        cache: "no-store",
+        ...opciones,
+        headers: { Accept: "application/json", ...(opciones.headers || {}) }
+    });
+    let datos;
     try {
-        const resp = await fetch('/api/dashboard');
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const datos = await resp.json();
+        datos = await respuesta.json();
+    } catch {
+        throw new Error("El servidor devolvió una respuesta no válida.");
+    }
+    if (!respuesta.ok || datos.ok === false) {
+        throw new Error(datos.error || `Error HTTP ${respuesta.status}`);
+    }
+    return datos;
+}
+
+async function cargarDashboard() {
+    const estado = document.getElementById("estado-inferencia");
+    try {
+        const datos = await pedirJson("/api/dashboard");
         const estadisticas = datos.estadisticas || {};
-
-        document.getElementById('total-registros').textContent = estadisticas.total_registros ?? 0;
-        document.getElementById('total-anomalias').textContent = estadisticas.total_detecciones ?? 0;
-        document.getElementById('total-motores').textContent = (datos.motores || []).length;
-        document.getElementById('umbral').textContent =
-            Number.isFinite(estadisticas.umbral) ? estadisticas.umbral.toFixed(6) : '-';
-
-        const tbody = document.querySelector('#tabla-anomalias tbody');
-        tbody.replaceChildren();
-        const historial = datos.historial || [];
-        historial.forEach((deteccion) => {
-            const tr = document.createElement('tr');
-            const valores = [
-                deteccion.fecha || '-',
-                deteccion.hora || '-',
-                deteccion.motor_id || '-',
-            ];
-            valores.forEach((valor) => {
-                const td = document.createElement('td');
-                td.textContent = String(valor);
-                tr.appendChild(td);
-            });
-
-            const tdSeveridad = document.createElement('td');
-            const etiqueta = document.createElement('span');
-            etiqueta.className = `severidad ${String(deteccion.severidad || '').replace(/[^a-zA-Z_-]/g, '')}`;
-            etiqueta.textContent = deteccion.severidad || '-';
-            tdSeveridad.appendChild(etiqueta);
-            tr.appendChild(tdSeveridad);
-
-            const tdError = document.createElement('td');
-            const error = Number(deteccion.error_reconstruccion);
-            tdError.textContent = Number.isFinite(error) ? error.toFixed(4) : '-';
-            tr.appendChild(tdError);
-
-            const tdInterpretacion = document.createElement('td');
-            tdInterpretacion.textContent = deteccion.tipo_interpretacion || '-';
-            tr.appendChild(tdInterpretacion);
-            tbody.appendChild(tr);
-        });
-
-        const contenedorMotores = document.getElementById('lista-motores');
-        contenedorMotores.replaceChildren();
-        (datos.motores || []).forEach((motor) => {
-            const tarjeta = document.createElement('div');
-            tarjeta.className = 'motor-card';
-            const titulo = document.createElement('h3');
-            titulo.textContent = String(motor);
-            const detalle = document.createElement('p');
-            detalle.textContent = 'Motor registrado en la base de datos.';
-            tarjeta.append(titulo, detalle);
-            contenedorMotores.appendChild(tarjeta);
-        });
-        dibujarGrafico(historial);
+        ponerTexto("total-registros", estadisticas.total_registros ?? 0);
+        ponerTexto("total-anomalias", estadisticas.total_detecciones ?? 0);
+        ponerTexto("total-motores", (datos.motores || []).length);
+        ponerTexto("umbral", estadisticas.umbral !== null && estadisticas.umbral !== undefined && estadisticas.umbral !== "" && Number.isFinite(Number(estadisticas.umbral))
+            ? Number(estadisticas.umbral).toPrecision(5) : "No disponible");
+        dibujarHistorial(datos.historial || []);
+        if (estado) estado.textContent = "Información actualizada.";
     } catch (error) {
-        console.error('Error cargando dashboard:', error);
-        const estado = document.getElementById('estado-inferencia');
-        if (estado) estado.textContent = 'No se pudo cargar el dashboard. Revisa la base de datos y el servidor.';
+        if (estado) estado.textContent = `No se pudo cargar el dashboard: ${error.message}`;
+        console.error("EdgeMant dashboard:", error);
     }
 }
 
-function dibujarGrafico(historial) {
-    const canvas = document.getElementById('grafico-error');
-    if (!canvas) return;
-    const contexto = canvas.getContext('2d');
-    if (!contexto) return;
+function ponerTexto(id, valor) {
+    const elemento = document.getElementById(id);
+    if (elemento) elemento.textContent = String(valor);
+}
 
-    const ancho = Math.max(canvas.clientWidth, 320);
-    const alto = 220;
-    const escalaDpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(ancho * escalaDpr);
-    canvas.height = Math.floor(alto * escalaDpr);
-    canvas.style.height = `${alto}px`;
-    contexto.setTransform(escalaDpr, 0, 0, escalaDpr, 0, 0);
-    contexto.clearRect(0, 0, ancho, alto);
+function dibujarHistorial(historial) {
+    const tbody = document.querySelector("#tabla-anomalias tbody");
+    if (!tbody) return;
+    tbody.replaceChildren();
 
-    const puntos = historial
-        .map((fila) => ({
-            error: Number(fila.error_reconstruccion),
-            umbral: Number(fila.umbral),
-        }))
-        .filter((fila) => Number.isFinite(fila.error) && Number.isFinite(fila.umbral));
-    if (!puntos.length) {
-        contexto.fillText('Aún no hay detecciones para graficar.', 12, 24);
+    if (!historial.length) {
+        const fila = document.createElement("tr");
+        const celda = document.createElement("td");
+        celda.colSpan = 6;
+        celda.className = "vacio";
+        celda.textContent = "Todavía no hay detecciones registradas.";
+        fila.appendChild(celda);
+        tbody.appendChild(fila);
         return;
     }
 
-    const margen = { izquierda: 42, derecha: 12, arriba: 12, abajo: 28 };
-    const anchoUtil = ancho - margen.izquierda - margen.derecha;
-    const altoUtil = alto - margen.arriba - margen.abajo;
-    const maximo = Math.max(...puntos.flatMap((p) => [p.error, p.umbral]), 0.000001) * 1.1;
-    const x = (i) => margen.izquierda + (puntos.length === 1 ? anchoUtil / 2 : i * anchoUtil / (puntos.length - 1));
-    const y = (valor) => margen.arriba + altoUtil - (valor / maximo) * altoUtil;
-
-    contexto.beginPath();
-    contexto.moveTo(margen.izquierda, margen.arriba);
-    contexto.lineTo(margen.izquierda, margen.arriba + altoUtil);
-    contexto.lineTo(ancho - margen.derecha, margen.arriba + altoUtil);
-    contexto.stroke();
-
-    contexto.beginPath();
-    puntos.forEach((p, i) => {
-        if (i === 0) contexto.moveTo(x(i), y(p.error));
-        else contexto.lineTo(x(i), y(p.error));
+    historial.forEach((deteccion) => {
+        const fila = document.createElement("tr");
+        const valores = [
+            deteccion.fecha || "—",
+            deteccion.hora || "—",
+            deteccion.motor_id || "—",
+            deteccion.severidad || "—",
+            Number.isFinite(Number(deteccion.error_reconstruccion))
+                ? Number(deteccion.error_reconstruccion).toPrecision(5) : "—",
+            deteccion.tipo_interpretacion || deteccion.descripcion || "Sin interpretación"
+        ];
+        valores.forEach((valor, indice) => {
+            const celda = document.createElement("td");
+            celda.textContent = String(valor);
+            if (indice === 3) {
+                celda.className = `severidad severidad-${String(valor).toLowerCase().replace(/[^a-z0-9_-]/g, "")}`;
+            }
+            fila.appendChild(celda);
+        });
+        tbody.appendChild(fila);
     });
-    contexto.stroke();
+}
 
-    contexto.setLineDash([5, 4]);
-    const umbralMedio = puntos.reduce((suma, p) => suma + p.umbral, 0) / puntos.length;
-    contexto.beginPath();
-    contexto.moveTo(margen.izquierda, y(umbralMedio));
-    contexto.lineTo(ancho - margen.derecha, y(umbralMedio));
-    contexto.stroke();
-    contexto.setLineDash([]);
+async function comprobarOllama() {
+    const elemento = document.getElementById("estado-ollama");
+    if (!elemento) return;
+    try {
+        const estado = await pedirJson("/api/asistente/estado");
+        const disponible = estado.conectado && estado.modelo_disponible;
+        elemento.classList.toggle("conectado", Boolean(disponible));
+        elemento.classList.toggle("desconectado", !disponible);
+        const texto = elemento.querySelector("span:last-child");
+        if (texto) {
+            texto.textContent = disponible
+                ? `IA local lista · ${estado.modelo}`
+                : (estado.conectado ? `Ollama activo; falta ${estado.modelo}` : "IA local desconectada");
+        }
+    } catch (error) {
+        elemento.classList.remove("conectado");
+        elemento.classList.add("desconectado");
+        const texto = elemento.querySelector("span:last-child");
+        if (texto) texto.textContent = "No se pudo comprobar Ollama";
+    }
+}
 
-    contexto.fillText('Error de reconstrucción', margen.izquierda, alto - 8);
-    contexto.fillText('Umbral medio', ancho - 112, alto - 8);
+function agregarMensaje(texto, tipo) {
+    const contenedor = document.getElementById("asistente-mensajes");
+    if (!contenedor) return null;
+    const articulo = document.createElement("article");
+    articulo.className = `mensaje mensaje-${tipo}`;
+    const autor = document.createElement("span");
+    autor.className = "mensaje-autor";
+    autor.textContent = tipo === "usuario" ? "TÚ" : "EDGEMANT";
+    const parrafo = document.createElement("p");
+    parrafo.textContent = texto;
+    articulo.append(autor, parrafo);
+    contenedor.appendChild(articulo);
+    contenedor.scrollTop = contenedor.scrollHeight;
+    return parrafo;
+}
+
+async function enviarPregunta(evento) {
+    evento.preventDefault();
+    const input = document.getElementById("asistente-input");
+    const boton = document.getElementById("asistente-enviar");
+    const estado = document.getElementById("asistente-estado");
+    const pregunta = (input?.value || "").trim();
+    if (!pregunta) {
+        input?.focus();
+        return;
+    }
+
+    agregarMensaje(pregunta, "usuario");
+    input.value = "";
+    input.disabled = true;
+    if (boton) boton.disabled = true;
+    if (estado) estado.textContent = "Generando respuesta desde Ollama…";
+    const respuesta = agregarMensaje("", "ia");
+
+    try {
+        const resp = await fetch("/api/asistente/stream", {
+            method: "POST",
+            cache: "no-store",
+            headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
+            body: JSON.stringify({ pregunta })
+        });
+        if (!resp.ok || !resp.body) {
+            let detalle = {};
+            try { detalle = await resp.json(); } catch { /* respuesta no JSON */ }
+            throw new Error(detalle.error || `No se pudo iniciar la consulta (HTTP ${resp.status}).`);
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let recibioTexto = false;
+        let termino = false;
+
+        while (!termino) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+            const bloques = buffer.split("\n\n");
+            buffer = bloques.pop() || "";
+
+            for (const bloque of bloques) {
+                const linea = bloque.split("\n").find((parte) => parte.startsWith("data:"));
+                if (!linea) continue;
+                const contenido = linea.slice(5).trim();
+                if (contenido === "[DONE]") {
+                    termino = true;
+                    break;
+                }
+                let evento;
+                try { evento = JSON.parse(contenido); }
+                catch { throw new Error("El servidor envió un fragmento de respuesta no válido."); }
+
+                if (evento.error) throw new Error(evento.error);
+                if (typeof evento.token === "string" && evento.token) {
+                    respuesta.textContent += evento.token;
+                    recibioTexto = true;
+                    const mensajes = document.getElementById("asistente-mensajes");
+                    if (mensajes) mensajes.scrollTop = mensajes.scrollHeight;
+                }
+                if (evento.done) {
+                    termino = true;
+                    if (estado) estado.textContent = `Respuesta generada por ${evento.modelo || "la IA local"}.`;
+                    break;
+                }
+            }
+        }
+
+        if (!recibioTexto) throw new Error("Ollama terminó sin generar texto.");
+        if (estado && !estado.textContent.startsWith("Respuesta generada")) {
+            estado.textContent = "Respuesta recibida desde la IA local.";
+        }
+    } catch (error) {
+        respuesta?.closest(".mensaje")?.remove();
+        agregarMensaje(error.message, "error");
+        if (estado) estado.textContent = "No se pudo completar la consulta.";
+    } finally {
+        input.disabled = false;
+        if (boton) boton.disabled = false;
+        input.focus();
+    }
 }
 
 async function ejecutarInferencia() {
-    const estado = document.getElementById('estado-inferencia');
-    const boton = document.getElementById('btn-inferir');
-    estado.textContent = 'Ejecutando inferencia...';
+    const boton = document.getElementById("btn-inferir");
+    const estado = document.getElementById("estado-inferencia");
     if (boton) boton.disabled = true;
+    if (estado) estado.textContent = "Ejecutando inferencia; esto puede tardar…";
 
     try {
-        const resp = await fetch('/api/inferir', { method: 'POST' });
-        const datos = await resp.json();
-        if (!resp.ok || datos.ok === false) {
-            throw new Error(datos.error || `HTTP ${resp.status}`);
-        }
-        estado.textContent = `Inferencia completada. Nuevas detecciones guardadas: ${datos.detecciones_guardadas}`;
+        const datos = await pedirJson("/api/inferir", { method: "POST" });
+        if (estado) estado.textContent = `Análisis completado. Nuevas detecciones guardadas: ${datos.detecciones_guardadas ?? 0}.`;
         await cargarDashboard();
     } catch (error) {
-        estado.textContent = `Error en la inferencia: ${error.message}`;
-        console.error('Error ejecutando inferencia:', error);
+        if (estado) estado.textContent = `No se pudo completar la inferencia: ${error.message}`;
+        console.error("EdgeMant inferencia:", error);
     } finally {
         if (boton) boton.disabled = false;
     }
 }
-
-
-function agregarMensajeAsistente(texto, tipo) {
-    const contenedor = document.getElementById(" asistente-mensajes\);
