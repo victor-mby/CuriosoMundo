@@ -53,7 +53,7 @@ def api_inferir():
 @app.get("/api/asistente/estado")
 def api_asistente_estado():
     try:
-        from .servicios.ollama import estado_ollama
+        from dashboard.servicios.ollama import estado_ollama
         return jsonify(estado_ollama())
     except Exception:
         app.logger.exception("No se pudo consultar el estado de Ollama")
@@ -77,7 +77,7 @@ def api_asistente():
         return jsonify({"ok": False, "error": "La pregunta no puede superar los 1000 caracteres."}), 413
 
     try:
-        from .servicios.ollama import consultar_ollama
+        from dashboard.servicios.ollama import consultar_ollama
         resultado = consultar_ollama(pregunta)
         if not resultado.get("ok"):
             return jsonify(resultado), 503
