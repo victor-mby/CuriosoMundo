@@ -154,17 +154,68 @@ async function enviarPregunta(evento) {
     input.value = "";
     input.disabled = true;
     if (boton) boton.disabled = true;
-    if (estado) estado.textContent = "Consultando el modelo local…";
+    if (estado) estado.textContent = "Generando respuesta desde Ollama…";
+    const respuesta = agregarMensaje("", "ia");
 
     try {
-        const datos = await pedirJson("/api/asistente", {
+        const resp = await fetch("/api/asistente/stream", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            cache: "no-store",
+            headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
             body: JSON.stringify({ pregunta })
         });
-        agregarMensaje(datos.respuesta || "El modelo no devolvió texto.", "ia");
-        if (estado) estado.textContent = `Respuesta generada por ${datos.modelo || "la IA local"}.`;
+        if (!resp.ok || !resp.body) {
+            let detalle = {};
+            try { detalle = await resp.json(); } catch { /* respuesta no JSON */ }
+            throw new Error(detalle.error || `No se pudo iniciar la consulta (HTTP ${resp.status}).`);
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let recibioTexto = false;
+        let termino = false;
+
+        while (!termino) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+            const bloques = buffer.split("\n\n");
+            buffer = bloques.pop() || "";
+
+            for (const bloque of bloques) {
+                const linea = bloque.split("\n").find((parte) => parte.startsWith("data:"));
+                if (!linea) continue;
+                const contenido = linea.slice(5).trim();
+                if (contenido === "[DONE]") {
+                    termino = true;
+                    break;
+                }
+                let evento;
+                try { evento = JSON.parse(contenido); }
+                catch { throw new Error("El servidor envió un fragmento de respuesta no válido."); }
+
+                if (evento.error) throw new Error(evento.error);
+                if (typeof evento.token === "string" && evento.token) {
+                    respuesta.textContent += evento.token;
+                    recibioTexto = true;
+                    const mensajes = document.getElementById("asistente-mensajes");
+                    if (mensajes) mensajes.scrollTop = mensajes.scrollHeight;
+                }
+                if (evento.done) {
+                    termino = true;
+                    if (estado) estado.textContent = `Respuesta generada por ${evento.modelo || "la IA local"}.`;
+                    break;
+                }
+            }
+        }
+
+        if (!recibioTexto) throw new Error("Ollama terminó sin generar texto.");
+        if (estado && !estado.textContent.startsWith("Respuesta generada")) {
+            estado.textContent = "Respuesta recibida desde la IA local.";
+        }
     } catch (error) {
+        respuesta?.closest(".mensaje")?.remove();
         agregarMensaje(error.message, "error");
         if (estado) estado.textContent = "No se pudo completar la consulta.";
     } finally {
