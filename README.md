@@ -62,16 +62,14 @@ Abre `http://127.0.0.1:5000`. La conexión con Ollama se indica en la parte supe
 - Estado del modelo local: `http://127.0.0.1:5000/api/asistente/estado`
 - Salud del receptor: `http://127.0.0.1:8765/api/salud`
 
-Desde la raíz del proyecto, ejecuta las pruebas:
+Desde la raíz del proyecto, ejecuta primero las pruebas unitarias que usan una base temporal o mocks:
 
 ```powershell
-py -m unittest discover -s dashboard/pruebas -v
 py -m unittest discover -s integracion/pruebas -v
-py -m unittest discover -s base_datos/pruebas -v
-py -m unittest discover -s pruebas -v
+py -m unittest discover -s dashboard/pruebas -v
 ```
 
-Ejecuta cada conjunto por separado para distinguir errores de entorno de fallos del proyecto. No borres la base de datos operativa para resolver una prueba.
+Después revisa individualmente los tests de `base_datos/pruebas` y los scripts de `pruebas/` antes de ejecutarlos: algunos scripts de etapa generan datos y podrían modificar la base configurada. No ejecutes scripts de generación contra datos operativos ni borres la base de datos para resolver un fallo. La ejecución local completa aún está pendiente de confirmación.
 
 ## Configuración opcional de Ollama
 
