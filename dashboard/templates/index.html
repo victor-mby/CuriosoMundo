@@ -77,3 +77,24 @@
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
+
+
+    <section class="asistente">
+        <h2>Asistente EdgeMant</h2>
+        <p class="asistente-descripcion">Consulta sobre el estado de la estacion usando unicamente datos disponibles.</p>
+        <div class="preguntas-rapidas">
+            <button class="pregunta-rapida" data-pregunta="Hay alguna anomalia activa que deba revisar primero?">Anomalias activas?</button>
+            <button class="pregunta-rapida" data-pregunta="Que motor muestra mayor desviacion?">Mayor desviacion</button>
+            <button class="pregunta-rapida" data-pregunta="Es normal el funcionamiento actual?">Funcionamiento normal?</button>
+            <button class="pregunta-rapida" data-pregunta="Por que hay caudal bajo?">Caudal bajo?</button>
+            <button class="pregunta-rapida" data-pregunta="Hay valores electricos anormales?">Valores electricos</button>
+        </div>
+        <div class="asistente-chat">
+            <div id="asistente-mensajes" class="asistente-mensajes"></div>
+            <div class="asistente-entrada">
+                <input type="text" id="asistente-input" class="asistente-input" placeholder="Escribe tu consulta..." autocomplete="off">
+                <button id="asistente-enviar">Enviar</button>
+            </div>
+            <div id="asistente-estado" class="asistente-estado"></div>
+        </div>
+    </section>

@@ -1,7 +1,7 @@
 import os
 import sys
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
@@ -18,7 +18,10 @@ for ruta in (SERVICIOS_DIR, ML_DIR):
 try:
     from .servicios.dashboard import obtener_dashboard, ejecutar_inferencia_y_guardar
 except ImportError:
-    from servicios.dashboard import obtener_dashboard, ejecutar_inferencia_y_guardar
+    try:
+        from servicios.dashboard import obtener_dashboard, ejecutar_inferencia_y_guardar
+    except Exception:
+        from dashboard.servicios.dashboard import obtener_dashboard, ejecutar_inferencia_y_guardar
 
 
 @app.route('/')
@@ -48,3 +51,29 @@ def api_inferir():
 if __name__ == '__main__':
     # Solo acceso local y sin depurador interactivo expuesto en la red.
     app.run(debug=False, host='127.0.0.1', port=5000)
+
+
+@app.route("/api/asistente", methods=["POST"])
+def api_asistente():
+    try:
+        data = request.get_json(silent=True) or {}
+        pregunta = (data.get("pregunta") or "").strip()
+        if not pregunta:
+            return jsonify({"ok": False, "error": "Falta el campo pregunta."}), 400
+        from dashboard.servicios.ollama import consultar_ollama
+        resultado = consultar_ollama(pregunta)
+        if not resultado.get("ok"):
+            return jsonify(resultado), 503
+        return jsonify(resultado)
+    except Exception as error:
+        app.logger.exception("Error en asistente")
+        return jsonify({"ok": False, "error": str(error)}), 500
+
+@app.route("/api/asistente/estado", methods=["GET"])
+def api_asistente_estado():
+    try:
+        from dashboard.servicios.ollama import consultar_ollama
+        resultado = consultar_ollama("estado")
+        return jsonify(resultado)
+    except Exception as error:
+        return jsonify({"ok": False, "error": str(error), "conectado": False}), 500

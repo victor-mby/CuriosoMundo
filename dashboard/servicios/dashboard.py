@@ -10,14 +10,34 @@ RUTA_UMBRAL = os.path.join(ML_DIR, 'modelos', 'umbral.txt')
 if ML_DIR not in sys.path:
     sys.path.insert(0, ML_DIR)
 
-from inferir import inferir, cargar_modelo
-from interpretar import interpretar_fila
-from servicio_historial import (
-    guardar_deteccion,
-    obtener_historial,
-    obtener_estadisticas,
-    asegurar_tabla_detecciones,
-)
+try:
+    from .inferir import inferir, cargar_modelo
+    from .interpretar import interpretar_fila
+    from .servicio_historial import (
+        guardar_deteccion,
+        obtener_historial,
+        obtener_estadisticas,
+        asegurar_tabla_detecciones,
+    )
+except Exception:
+    try:
+        from inferir import inferir, cargar_modelo
+        from interpretar import interpretar_fila
+        from servicio_historial import (
+            guardar_deteccion,
+            obtener_historial,
+            obtener_estadisticas,
+            asegurar_tabla_detecciones,
+        )
+    except Exception:
+        from ml.inferir import inferir, cargar_modelo
+        from ml.interpretar import interpretar_fila
+        from dashboard.servicios.servicio_historial import (
+            guardar_deteccion,
+            obtener_historial,
+            obtener_estadisticas,
+            asegurar_tabla_detecciones,
+        )
 
 
 def ejecutar_inferencia_y_guardar():

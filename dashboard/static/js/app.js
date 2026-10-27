@@ -150,3 +150,7 @@ async function ejecutarInferencia() {
         if (boton) boton.disabled = false;
     }
 }
+
+
+function agregarMensajeAsistente(texto, tipo) {
+    const contenedor = document.getElementById(" asistente-mensajes\);
