@@ -49,7 +49,7 @@ async function cargarDashboard() {
         ponerTexto("total-registros", estadisticas.total_registros ?? 0);
         ponerTexto("total-anomalias", estadisticas.total_detecciones ?? 0);
         ponerTexto("total-motores", (datos.motores || []).length);
-        ponerTexto("umbral", Number.isFinite(Number(estadisticas.umbral))
+        ponerTexto("umbral", estadisticas.umbral !== null && estadisticas.umbral !== undefined && estadisticas.umbral !== "" && Number.isFinite(Number(estadisticas.umbral))
             ? Number(estadisticas.umbral).toPrecision(5) : "No disponible");
         dibujarHistorial(datos.historial || []);
         if (estado) estado.textContent = "Información actualizada.";
